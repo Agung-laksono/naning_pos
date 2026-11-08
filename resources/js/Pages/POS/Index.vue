@@ -309,6 +309,8 @@ const availableCameras = ref([]);
 const currentCameraIndex = ref(0);
 const quickBarcodeInput = ref('');
 const isScanFlashActive = ref(false);
+const hasTorch = ref(false);
+const isTorchOn = ref(false);
 let html5QrCode = null;
 let lastScannedBarcode = '';
 let lastScannedTime = 0;
@@ -487,12 +489,95 @@ function triggerScanVisualFlash() {
   }, 220);
 }
 
+// Terapkan Continuous Autofocus Hardware & Auto-Exposure ke driver kamera tablet
+function applyCameraOptimizations() {
+  try {
+    const videoEl = document.querySelector('#scanner-viewfinder video');
+    if (!videoEl || !videoEl.srcObject) return;
+
+    const stream = videoEl.srcObject;
+    const track = stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+    if (!track) return;
+
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    const advanced = {};
+
+    // 1. Kunci Continuous Autofocus Hardware (fokus otomatis cepat & tajam)
+    if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+      advanced.focusMode = 'continuous';
+    }
+
+    // 2. Kunci Auto Exposure Continuous (adaptasi cahaya cepat terhadap label barcode)
+    if (caps.exposureMode && Array.isArray(caps.exposureMode) && caps.exposureMode.includes('continuous')) {
+      advanced.exposureMode = 'continuous';
+    }
+
+    // 3. Kunci Continuous White Balance
+    if (caps.whiteBalanceMode && Array.isArray(caps.whiteBalanceMode) && caps.whiteBalanceMode.includes('continuous')) {
+      advanced.whiteBalanceMode = 'continuous';
+    }
+
+    if (Object.keys(advanced).length > 0 && track.applyConstraints) {
+      track.applyConstraints({
+        advanced: [advanced]
+      }).then(() => {
+        console.log('Naning POS: Hardware Continuous Autofocus aktif.');
+      }).catch(err => {
+        console.warn('Gagal kunci autofocus:', err);
+      });
+    }
+
+    // Deteksi ketersediaan Lampu Flash (Torch)
+    hasTorch.value = !!caps.torch;
+    isTorchOn.value = false;
+  } catch (e) {
+    console.warn('Optimasi kamera dilewati:', e);
+  }
+}
+
+// Fitur Tap-to-Focus: Sentuh layar untuk memicu motor fokus ulang kamera
+function triggerManualFocus() {
+  try {
+    const videoEl = document.querySelector('#scanner-viewfinder video');
+    if (!videoEl || !videoEl.srcObject) return;
+    const track = videoEl.srcObject.getVideoTracks()[0];
+    if (!track || !track.applyConstraints) return;
+
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+      track.applyConstraints({
+        advanced: [{ focusMode: 'continuous' }]
+      }).catch(() => {});
+    }
+  } catch (e) {}
+}
+
+// Fitur Toggle Lampu Flash
+async function toggleTorch() {
+  try {
+    playBeepSound('click');
+    const videoEl = document.querySelector('#scanner-viewfinder video');
+    if (!videoEl || !videoEl.srcObject) return;
+    const track = videoEl.srcObject.getVideoTracks()[0];
+    if (!track || !track.applyConstraints || !hasTorch.value) return;
+
+    isTorchOn.value = !isTorchOn.value;
+    await track.applyConstraints({
+      advanced: [{ torch: isTorchOn.value }]
+    });
+  } catch (e) {
+    console.warn('Gagal toggle torch:', e);
+  }
+}
+
 async function startCameraScanner(target = 'cart') {
   scannerTarget.value = target;
   cameraError.value = '';
   scannerUnregisteredBarcode.value = '';
   quickBarcodeInput.value = '';
   showScannerModal.value = true;
+  hasTorch.value = false;
+  isTorchOn.value = false;
 
   await nextTick();
 
@@ -521,25 +606,28 @@ async function startCameraScanner(target = 'cart') {
     Html5QrcodeSupportedFormats.QR_CODE
   ];
 
+  // Konfigurasi scan dioptimalkan untuk barcode 1D retail:
+  // - FPS 25 untuk respon instan
+  // - Area kotak horizontal (92% lebar x 58% tinggi) memangkas 40% beban pixel CPU
   const scanConfig = {
-    fps: 20,
+    fps: 25,
     qrbox: (viewfinderWidth, viewfinderHeight) => {
-      // Area pemindaian lega (96% lebar & 85% tinggi) agar barcode lebar tidak terpotong batas
-      const w = Math.floor(viewfinderWidth * 0.96);
-      const h = Math.floor(viewfinderHeight * 0.85);
-      return { width: Math.max(260, w), height: Math.max(180, h) };
+      const w = Math.floor(viewfinderWidth * 0.92);
+      const h = Math.floor(Math.min(viewfinderHeight * 0.58, 220));
+      return { width: Math.max(260, w), height: Math.max(130, h) };
     },
     aspectRatio: 1.0,
     disableFlip: false
   };
 
+  // Aktifkan engine akselerasi perangkat keras asli browser (BarcodeDetector API)
   const createScannerInstance = () => {
     return new Html5Qrcode("scanner-viewfinder", {
       formatsToSupport: supportedFormats,
       verbose: false,
-      useBarCodeDetectorIfSupported: false,
+      useBarCodeDetectorIfSupported: true,
       experimentalFeatures: {
-        useBarCodeDetectorIfSupported: false
+        useBarCodeDetectorIfSupported: true
       }
     });
   };
@@ -578,6 +666,11 @@ async function startCameraScanner(target = 'cart') {
 
     isCameraActive.value = true;
 
+    // Terapkan Continuous Autofocus Hardware segera setelah video aktif
+    setTimeout(() => {
+      applyCameraOptimizations();
+    }, 250);
+
     // 3. Muat daftar kamera secara aman di background setelah stream aktif
     if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
       navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -606,6 +699,11 @@ async function startCameraScanner(target = 'cart') {
 }
 
 async function stopCameraScanner() {
+  if (isTorchOn.value) {
+    isTorchOn.value = false;
+  }
+  hasTorch.value = false;
+
   if (html5QrCode && isCameraActive.value) {
     try {
       await html5QrCode.stop();
@@ -2810,6 +2908,21 @@ onUnmounted(() => {
           </div>
 
           <div class="flex items-center gap-1.5">
+            <!-- Tombol Senter / Flash jika didukung hardware kamera tablet -->
+            <button 
+              v-if="hasTorch"
+              @click="toggleTorch" 
+              type="button"
+              :title="isTorchOn ? 'Matikan Lampu Flash' : 'Nyalakan Lampu Flash Kamera'"
+              :class="[
+                'px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer',
+                isTorchOn ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+              ]"
+            >
+              <span>🔦</span>
+              <span>{{ isTorchOn ? 'Nyala' : 'Flash' }}</span>
+            </button>
+
             <!-- Tombol Tes Suara Beep -->
             <button 
               @click="playBeepSound('success')" 
@@ -2845,7 +2958,11 @@ onUnmounted(() => {
 
         <!-- Area Kamera Scanner Melebar 100% Panel Kanan -->
         <div class="flex-1 flex flex-col items-center justify-center my-auto w-full relative">
-          <div class="relative w-full aspect-square max-h-[290px] bg-slate-950 rounded-2xl overflow-hidden border-2 border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.25)] flex items-center justify-center">
+          <div 
+            @click="triggerManualFocus" 
+            title="Sentuh layar video untuk memicu fokus ulang instan"
+            class="relative w-full aspect-square max-h-[290px] bg-slate-950 rounded-2xl overflow-hidden border-2 border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.25)] flex items-center justify-center cursor-pointer group"
+          >
             
             <!-- Elemen Pembaca Kamera HTML5-QRCode -->
             <div id="scanner-viewfinder" class="w-full h-full object-cover rounded-2xl overflow-hidden"></div>
@@ -2909,6 +3026,12 @@ onUnmounted(() => {
                 </button>
               </div>
             </div>
+          </div>
+
+          <!-- Status Indikator Autofokus & Tap to Focus -->
+          <div class="mt-2 text-center text-slate-400 text-[9px] flex items-center justify-center gap-1.5 select-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Autofokus Cepat Aktif • Sentuh kamera untuk fokus ulang</span>
           </div>
 
           <!-- Input Alternatif Cepat Manual Barcode / Testing Laptop -->
