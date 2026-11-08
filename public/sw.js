@@ -1,5 +1,5 @@
 // Rozak Mart POS - Progressive Web App Service Worker
-const CACHE_NAME = 'rozak-mart-pos-v9';
+const CACHE_NAME = 'rozak-mart-pos-v10';
 const STATIC_ASSETS = [
   '/',
   '/pos',

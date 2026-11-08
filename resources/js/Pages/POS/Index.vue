@@ -1806,6 +1806,99 @@ const filteredCatalogProducts = computed(() => {
   });
 });
 
+
+// ================= MASTER SETTINGS MODAL (MULTI-TAB) =================
+const showSettingsModal = ref(false);
+const activeSettingsTab = ref('profile'); // 'profile' | 'payment' | 'printer' | 'features' | 'data'
+
+const settingsForm = ref({
+  store_name: props.settings?.store_name || 'Rozak Mart',
+  store_address: props.settings?.store_address || 'Jl. Melati No. 12, Kel. Sukamaju',
+  store_phone: props.settings?.store_phone || '0812-3456-7890',
+  receipt_footer: props.settings?.receipt_footer || 'Terima Kasih Atas Kunjungan Anda!\nBarang yang sudah dibeli tidak dapat ditukar.',
+  qris_mode: localStorage.getItem('qris_mode') || props.settings?.qris_mode || 'emvco',
+  qris_static_payload: localStorage.getItem('store_qris_payload') || props.settings?.qris_static_payload || '',
+  midtrans_server_key: props.settings?.midtrans_server_key || '',
+  midtrans_is_production: props.settings?.midtrans_is_production === 'true',
+  receipt_paper_size: localStorage.getItem('receipt_paper_size') || props.settings?.receipt_paper_size || '80mm',
+  receipt_auto_print: localStorage.getItem('receipt_auto_print') === 'true' || props.settings?.receipt_auto_print === 'true',
+  enable_stock_tracking: props.settings?.enable_stock_tracking === 'true',
+  enable_cashier_shifts: props.settings?.enable_cashier_shifts === 'true',
+  enable_hpp_profit: props.settings?.enable_hpp_profit === 'true',
+});
+
+const offlineStats = ref({
+  transactionsCount: 0,
+  productsCount: 0,
+});
+
+async function loadOfflineStats() {
+  try {
+    offlineStats.value.transactionsCount = await db.offline_transactions.count();
+    offlineStats.value.productsCount = await db.offline_products.count();
+  } catch (e) {
+    console.warn('Error reading offline stats:', e);
+  }
+}
+
+function openSettingsModal() {
+  settingsForm.value = {
+    store_name: props.settings?.store_name || 'Rozak Mart',
+    store_address: props.settings?.store_address || 'Jl. Melati No. 12, Kel. Sukamaju',
+    store_phone: props.settings?.store_phone || '0812-3456-7890',
+    receipt_footer: props.settings?.receipt_footer || 'Terima Kasih Atas Kunjungan Anda!\nBarang yang sudah dibeli tidak dapat ditukar.',
+    qris_mode: localStorage.getItem('qris_mode') || props.settings?.qris_mode || 'emvco',
+    qris_static_payload: localStorage.getItem('store_qris_payload') || props.settings?.qris_static_payload || '',
+    midtrans_server_key: props.settings?.midtrans_server_key || '',
+    midtrans_is_production: props.settings?.midtrans_is_production === 'true',
+    receipt_paper_size: localStorage.getItem('receipt_paper_size') || props.settings?.receipt_paper_size || '80mm',
+    receipt_auto_print: localStorage.getItem('receipt_auto_print') === 'true' || props.settings?.receipt_auto_print === 'true',
+    enable_stock_tracking: props.settings?.enable_stock_tracking === 'true',
+    enable_cashier_shifts: props.settings?.enable_cashier_shifts === 'true',
+    enable_hpp_profit: props.settings?.enable_hpp_profit === 'true',
+  };
+  loadOfflineStats();
+  showSettingsModal.value = true;
+}
+
+function saveMasterSettings() {
+  // Simpan ke localStorage untuk akses cepat instan di browser
+  localStorage.setItem('qris_mode', settingsForm.value.qris_mode);
+  localStorage.setItem('store_qris_payload', settingsForm.value.qris_static_payload);
+  localStorage.setItem('receipt_paper_size', settingsForm.value.receipt_paper_size);
+  localStorage.setItem('receipt_auto_print', settingsForm.value.receipt_auto_print ? 'true' : 'false');
+  
+  // Update state lokal
+  qrisMode.value = settingsForm.value.qris_mode;
+  storeQrisPayload.value = settingsForm.value.qris_static_payload;
+
+  // Simpan ke Backend Database Laravel
+  router.post('/pos/settings', {
+    settings: {
+      store_name: settingsForm.value.store_name,
+      store_address: settingsForm.value.store_address,
+      store_phone: settingsForm.value.store_phone,
+      receipt_footer: settingsForm.value.receipt_footer,
+      qris_mode: settingsForm.value.qris_mode,
+      qris_static_payload: settingsForm.value.qris_static_payload,
+      midtrans_server_key: settingsForm.value.midtrans_server_key,
+      midtrans_is_production: settingsForm.value.midtrans_is_production,
+      receipt_paper_size: settingsForm.value.receipt_paper_size,
+      receipt_auto_print: settingsForm.value.receipt_auto_print,
+      enable_stock_tracking: settingsForm.value.enable_stock_tracking,
+      enable_cashier_shifts: settingsForm.value.enable_cashier_shifts,
+      enable_hpp_profit: settingsForm.value.enable_hpp_profit,
+    }
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    onSuccess: () => {
+      showSettingsModal.value = false;
+      playBeepSound('success');
+    }
+  });
+}
+
 // ================= MODAL GALERI PELANGGAN (SIDE SHEET KANAN 35%) =================
 const showCustomerModal = ref(false);
 const customerSearchQuery = ref('');
@@ -2065,14 +2158,23 @@ onUnmounted(() => {
       <!-- Header Keranjang: Logo + Search + Tombol Galeri & Scanner (MODERN POS FLAT) -->
       <div class="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0 flex items-center gap-3">
         <!-- Logo Toko (Modern Flat Tile) -->
-        <div class="flex items-center gap-2.5 shrink-0">
+        <div class="flex items-center gap-2 shrink-0">
           <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-xs">
             RM
           </div>
           <div class="leading-tight">
-            <div class="text-xs font-black text-slate-900 leading-none uppercase tracking-wide">Rozak Mart</div>
+            <div class="text-xs font-black text-slate-900 leading-none uppercase tracking-wide">{{ settingsForm.store_name || 'Rozak Mart' }}</div>
             <div class="text-[10px] text-slate-500 font-medium mt-0.5">Kasir: <strong class="text-slate-700">Siska A.</strong></div>
           </div>
+          <!-- Tombol Pengaturan Master Multi-Tab -->
+          <button 
+            type="button" 
+            @click="openSettingsModal" 
+            title="Buka Pengaturan Toko & POS" 
+            class="ml-1 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200 flex items-center justify-center text-xs font-bold transition cursor-pointer shadow-2xs"
+          >
+            ⚙️
+          </button>
         </div>
 
         <div class="w-px h-6 bg-slate-200 shrink-0"></div>
@@ -3900,10 +4002,10 @@ onUnmounted(() => {
         </div>
 
         <div class="thermal-receipt p-4 rounded-xl text-xs overflow-y-auto max-h-[440px] border border-slate-200 select-text font-mono shadow-inner bg-[#fffdfa]" id="printable-receipt">
-          <div class="text-center font-bold text-sm tracking-widest">ROZAK MART</div>
+          <div class="text-center font-bold text-sm tracking-widest uppercase">{{ settingsForm.store_name || 'ROZAK MART' }}</div>
           <div class="text-center text-[10px] leading-tight mt-0.5 text-gray-600">
-            Jl. Melati No. 12, Kel. Sukamaju<br>
-            Telp: 0812-3456-7890
+            {{ settingsForm.store_address || 'Jl. Melati No. 12, Kel. Sukamaju' }}<br>
+            Telp: {{ settingsForm.store_phone || '0812-3456-7890' }}
           </div>
           <div class="border-b border-dashed border-gray-400 my-2"></div>
           
@@ -3956,9 +4058,8 @@ onUnmounted(() => {
 
           <div class="border-b border-dashed border-gray-400 my-2"></div>
 
-          <div class="text-center text-[9px] leading-tight text-gray-600">
-            Terima Kasih Atas Kunjungan Anda!<br>
-            Barang yang sudah dibeli tidak dapat ditukar.
+          <div class="text-center text-[9px] leading-tight text-gray-600 whitespace-pre-line">
+            {{ settingsForm.receipt_footer || 'Terima Kasih Atas Kunjungan Anda!\nBarang yang sudah dibeli tidak dapat ditukar.' }}
           </div>
         </div>
 
@@ -3968,6 +4069,395 @@ onUnmounted(() => {
             <span>🖨️</span> Cetak Struk
           </button>
         </div>
+      </div>
+    </div>
+
+
+    <!-- ================================================================
+         10. MASTER SETTINGS MODAL (MODERN POS MULTI-TAB)
+         Tab 1: Profil Toko (Nama, Alamat, Telp, Struk Footer)
+         Tab 2: QRIS & Pembayaran (Mode Switch, String EMVCo, Midtrans)
+         Tab 3: Printer Struk (Ukuran Kertas 58mm/80mm, Auto-Print)
+         Tab 4: Saklar Fitur (Stok, Shift Kasir, Laba HPP)
+         Tab 5: Database & Offline Dexie (Sync Status, PWA)
+    ================================================================= -->
+    <div v-if="showSettingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-[80] flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-2xl h-[560px] max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+        
+        <!-- Header Dialog Pengaturan -->
+        <div class="bg-white px-5 py-3.5 border-b border-slate-200 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-sm font-bold shadow-xs">
+              ⚙️
+            </div>
+            <div>
+              <h3 class="font-bold text-sm text-slate-900 leading-tight">Pengaturan Sistem Rozak Mart</h3>
+              <p class="text-[10px] text-slate-500">Sesuaikan profil toko, QRIS, printer struk, dan saklar fitur</p>
+            </div>
+          </div>
+          <button @click="showSettingsModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <!-- Body: Split Sidebar Tab (Kiri) + Form Isi (Kanan) -->
+        <div class="flex-1 flex overflow-hidden">
+          
+          <!-- Sidebar Navigasi Tab Kiri (28%) -->
+          <div class="w-[28%] bg-slate-50 border-r border-slate-200 p-2.5 flex flex-col gap-1 shrink-0 overflow-y-auto">
+            <button 
+              type="button" 
+              @click="activeSettingsTab = 'profile'"
+              :class="activeSettingsTab === 'profile' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <span>🏬</span>
+              <span>Profil Toko</span>
+            </button>
+            <button 
+              type="button" 
+              @click="activeSettingsTab = 'payment'"
+              :class="activeSettingsTab === 'payment' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <span>💳</span>
+              <span>QRIS & Bayar</span>
+            </button>
+            <button 
+              type="button" 
+              @click="activeSettingsTab = 'printer'"
+              :class="activeSettingsTab === 'printer' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <span>🖨️</span>
+              <span>Printer Struk</span>
+            </button>
+            <button 
+              type="button" 
+              @click="activeSettingsTab = 'features'"
+              :class="activeSettingsTab === 'features' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <span>🎛️</span>
+              <span>Saklar Fitur</span>
+            </button>
+            <button 
+              type="button" 
+              @click="activeSettingsTab = 'data'"
+              :class="activeSettingsTab === 'data' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
+              class="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <span>💾</span>
+              <span>Data & Offline</span>
+            </button>
+          </div>
+
+          <!-- Konten Tab Sisi Kanan (72%) -->
+          <div class="flex-1 p-5 overflow-y-auto">
+            
+            <!-- TAB 1: PROFIL TOKO -->
+            <div v-if="activeSettingsTab === 'profile'" class="flex flex-col gap-3.5">
+              <div class="border-b border-slate-100 pb-2">
+                <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Identitas & Kontak Toko</h4>
+                <p class="text-[11px] text-slate-500">Informasi ini dicetak pada bagian atas (header) struk belanja pelanggan</p>
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Nama Toko:</label>
+                <input 
+                  type="text" 
+                  v-model="settingsForm.store_name" 
+                  placeholder="Rozak Mart" 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Alamat Lengkap Toko:</label>
+                <input 
+                  type="text" 
+                  v-model="settingsForm.store_address" 
+                  placeholder="Jl. Melati No. 12, Kel. Sukamaju" 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Nomor WhatsApp / Telepon Toko:</label>
+                <input 
+                  type="text" 
+                  v-model="settingsForm.store_phone" 
+                  placeholder="0812-3456-7890" 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                />
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Pesan Kaki Struk (Footer):</label>
+                <textarea 
+                  v-model="settingsForm.receipt_footer" 
+                  rows="2" 
+                  placeholder="Terima Kasih Atas Kunjungan Anda!&#10;Barang yang sudah dibeli tidak dapat ditukar." 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- TAB 2: QRIS & PEMBAYARAN -->
+            <div v-if="activeSettingsTab === 'payment'" class="flex flex-col gap-3.5">
+              <div class="border-b border-slate-100 pb-2">
+                <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Metode Pembayaran QRIS</h4>
+                <p class="text-[11px] text-slate-500">Konfigurasi dual mode QRIS Toko & Integrasi Payment Gateway</p>
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Pilihan Mode Default Saat Membuka QRIS:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button 
+                    type="button" 
+                    @click="settingsForm.qris_mode = 'emvco'"
+                    :class="settingsForm.qris_mode === 'emvco' ? 'border-2 border-blue-600 bg-blue-50/50 text-blue-900 font-bold shadow-2xs' : 'border border-slate-200 bg-slate-50 text-slate-700'"
+                    class="p-2.5 rounded-xl text-left transition cursor-pointer"
+                  >
+                    <div class="text-xs flex items-center gap-1.5 mb-0.5">
+                      <span>🏷️</span>
+                      <strong>QRIS Toko Mandiri</strong>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-tight">Nominal belanjaan terkunci otomatis, tanpa potongan gateway.</p>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    @click="settingsForm.qris_mode = 'gateway'"
+                    :class="settingsForm.qris_mode === 'gateway' ? 'border-2 border-emerald-600 bg-emerald-50/50 text-emerald-900 font-bold shadow-2xs' : 'border border-slate-200 bg-slate-50 text-slate-700'"
+                    class="p-2.5 rounded-xl text-left transition cursor-pointer"
+                  >
+                    <div class="text-xs flex items-center gap-1.5 mb-0.5">
+                      <span>⚡</span>
+                      <strong>QRIS Gateway</strong>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-tight">Realtime auto-detect lunas & langsung cetak otomatis.</p>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">String Payload QRIS Statis Toko (EMVCo):</label>
+                  <button 
+                    type="button" 
+                    @click="settingsForm.qris_static_payload = ''" 
+                    class="text-[9px] text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Reset Bawaan Rozak Mart
+                  </button>
+                </div>
+                <textarea 
+                  v-model="settingsForm.qris_static_payload" 
+                  rows="3" 
+                  placeholder="00020101021126630014ID.GO.IDC.WWW..." 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-mono text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                ></textarea>
+                <p class="text-[10px] text-slate-400 mt-0.5">
+                  Scan stiker QRIS toko Anda menggunakan kamera HP, lalu salin teks panjangnya ke sini.
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>⚡</span> Pengaturan Gateway (Midtrans)
+                </span>
+                <div>
+                  <label class="text-[10px] text-slate-500 font-bold block mb-0.5">Midtrans Server Key (Opsional):</label>
+                  <input 
+                    type="password" 
+                    v-model="settingsForm.midtrans_server_key" 
+                    placeholder="SB-Mid-server-xxxxxxxxxxxx" 
+                    class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-800"
+                  />
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer pt-0.5">
+                  <input type="checkbox" v-model="settingsForm.midtrans_is_production" class="w-4 h-4 text-emerald-600 rounded" />
+                  <span class="text-xs text-slate-700 font-medium">Aktifkan Mode Produksi / Live (Bukan Sandbox)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- TAB 3: PRINTER & STRUK -->
+            <div v-if="activeSettingsTab === 'printer'" class="flex flex-col gap-3.5">
+              <div class="border-b border-slate-100 pb-2">
+                <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Format Printer Thermal</h4>
+                <p class="text-[11px] text-slate-500">Sesuaikan lebar kertas struk dan opsi cetak otomatis</p>
+              </div>
+
+              <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Lebar Kertas Thermal:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button 
+                    type="button" 
+                    @click="settingsForm.receipt_paper_size = '80mm'"
+                    :class="settingsForm.receipt_paper_size === '80mm' ? 'border-2 border-blue-600 bg-blue-50/50 text-blue-900 font-bold shadow-2xs' : 'border border-slate-200 bg-slate-50 text-slate-700'"
+                    class="p-3 rounded-xl text-left transition cursor-pointer"
+                  >
+                    <div class="text-xs font-bold mb-0.5">80 mm (Standar Kasir Desktop)</div>
+                    <p class="text-[10px] text-slate-500 leading-tight">Kertas lebar standar Epson, Xprinter, Matrix Point.</p>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    @click="settingsForm.receipt_paper_size = '58mm'"
+                    :class="settingsForm.receipt_paper_size === '58mm' ? 'border-2 border-blue-600 bg-blue-50/50 text-blue-900 font-bold shadow-2xs' : 'border border-slate-200 bg-slate-50 text-slate-700'"
+                    class="p-3 rounded-xl text-left transition cursor-pointer"
+                  >
+                    <div class="text-xs font-bold mb-0.5">58 mm (Mini / Bluetooth)</div>
+                    <p class="text-[10px] text-slate-500 leading-tight">Printer thermal mini portable Bluetooth Android.</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Cetak Struk Otomatis (Auto-Print)</div>
+                  <div class="text-[10px] text-slate-500 mt-0.5">Langsung membuka dialog printer sesaat setelah kasir klik "Selesai"</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="settingsForm.receipt_auto_print" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+
+            <!-- TAB 4: SAKLAR FITUR TOKO -->
+            <div v-if="activeSettingsTab === 'features'" class="flex flex-col gap-3">
+              <div class="border-b border-slate-100 pb-2">
+                <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Saklar On/Off Fitur Kasir</h4>
+                <p class="text-[11px] text-slate-500">Aktifkan atau matikan modul sistem sesuai kebutuhan operasional warung/toko</p>
+              </div>
+
+              <!-- Saklar 1: Stok Fisik -->
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div class="pr-3">
+                  <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>📦</span> Pelacakan Stok Fisik Barang
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                    Jika aktif, penjualan akan memotong stok fisik dan menampilkan peringatan jika stok habis.
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" v-model="settingsForm.enable_stock_tracking" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              <!-- Saklar 2: Shift Kasir -->
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div class="pr-3">
+                  <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>⏱️</span> Buku Kas & Shift Kerja Karyawan
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                    Mencatat uang modal awal di laci kasir dan menghitung selisih uang saat tutup shift.
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" v-model="settingsForm.enable_cashier_shifts" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              <!-- Saklar 3: HPP / Profit -->
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div class="pr-3">
+                  <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>📈</span> Hitung HPP & Laba Bersih
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                    Mencatat harga modal produk untuk menghasilkan laporan estimasi keuntungan toko.
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" v-model="settingsForm.enable_hpp_profit" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+            </div>
+
+            <!-- TAB 5: DATABASE & OFFLINE DEXIE -->
+            <div v-if="activeSettingsTab === 'data'" class="flex flex-col gap-3.5">
+              <div class="border-b border-slate-100 pb-2">
+                <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Status Offline & Sinkronisasi</h4>
+                <p class="text-[11px] text-slate-500">Penyimpanan IndexedDB browser & status cache aplikasi PWA</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Status Koneksi Internet:</span>
+                  <div class="flex items-center gap-2">
+                    <span :class="isOnline ? 'bg-emerald-500' : 'bg-rose-500'" class="w-2.5 h-2.5 rounded-full"></span>
+                    <span class="text-xs font-bold text-slate-900">{{ isOnline ? 'Online (Terhubung Server)' : 'Offline (Mode Mandiri)' }}</span>
+                  </div>
+                </div>
+
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Versi Service Worker:</span>
+                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v9</span>
+                </div>
+              </div>
+
+              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Antrean Transaksi Belum Ter-Sync</div>
+                  <div class="text-[10px] text-slate-500 mt-0.5">{{ offlineStats.transactionsCount }} nota tersimpan di memori perangkat</div>
+                </div>
+                <button 
+                  type="button" 
+                  @click="syncOfflineTransactions" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                >
+                  <span>🔄</span> Sinkronkan
+                </button>
+              </div>
+
+              <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-amber-900">Perbarui Cache & Muat Ulang PWA</div>
+                  <div class="text-[10px] text-amber-700 mt-0.5">Paksa browser memuat tampilan dan update program terbaru</div>
+                </div>
+                <button 
+                  type="button" 
+                  @click="window.location.reload(true)" 
+                  class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer"
+                >
+                  Reload
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Footer Dialog: Tombol Aksi Simpan -->
+        <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
+          <span class="text-[11px] text-slate-500">Pengaturan langsung aktif di kasir</span>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              @click="showSettingsModal = false" 
+              class="bg-white hover:bg-slate-100 text-slate-700 text-xs px-4 py-2 rounded-xl font-bold border border-slate-200 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              @click="saveMasterSettings" 
+              class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <span>💾</span>
+              <span>Simpan Pengaturan</span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
