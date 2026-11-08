@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TPKmart POS</string>
+    <string name="title_activity_main">TPKmart POS</string>
+    <string name="package_name">com.tpkmart.pos</string>
+    <string name="custom_url_scheme">com.tpkmart.pos</string>
+</resources>

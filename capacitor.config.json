@@ -1,0 +1,14 @@
+{
+  "appId": "com.tpkmart.pos",
+  "appName": "TPKmart POS",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "BarcodeScanner": {
+      "cameraFacing": "back"
+    }
+  }
+}
