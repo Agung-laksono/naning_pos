@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { ScannerService } from '@/services/scanner';
 import { db } from '@/db';
+import { generateDynamicQris } from '@/utils/qris';
 
 const props = defineProps({
   products: {
@@ -895,10 +896,139 @@ function confirmInlineCash(autoPrint = false) {
   rightMode.value = 'normal';
 }
 
-// ================= METODE PEMBAYARAN LAIN (QRIS & KASBON) =================
+// ================= METODE PEMBAYARAN LAIN (QRIS DUA MODE & KASBON) =================
 const showQrisModal = ref(false);
 const showReceiptModal = ref(false);
 const lastTransaction = ref(null);
+
+// Mode Switch: 'emvco' (Opsi 3: QRIS Toko Nominal Otomatis) vs 'gateway' (Opsi 2: Gateway Auto-Detect)
+const qrisMode = ref(localStorage.getItem('qris_mode') || 'emvco');
+const storeQrisPayload = ref(localStorage.getItem('store_qris_payload') || props.settings?.qris_static_payload || '');
+const showQrisConfigModal = ref(false);
+const tempQrisPayloadInput = ref('');
+
+// Gateway State & Polling
+const gatewayQrUrl = ref('');
+const gatewayStatus = ref('idle'); // 'idle' | 'loading' | 'pending' | 'settlement' | 'error'
+const gatewayMessage = ref('');
+let gatewayPollTimer = null;
+
+const dynamicEmvcoString = computed(() => {
+  return generateDynamicQris(storeQrisPayload.value, grandTotal.value);
+});
+
+const dynamicEmvcoQrUrl = computed(() => {
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=' + encodeURIComponent(dynamicEmvcoString.value);
+});
+
+function setQrisMode(mode) {
+  qrisMode.value = mode;
+  localStorage.setItem('qris_mode', mode);
+  if (mode === 'gateway') {
+    startGatewayQris();
+  } else {
+    stopGatewayPolling();
+  }
+}
+
+function stopGatewayPolling() {
+  if (gatewayPollTimer) {
+    clearInterval(gatewayPollTimer);
+    gatewayPollTimer = null;
+  }
+}
+
+async function startGatewayQris() {
+  stopGatewayPolling();
+  gatewayStatus.value = 'loading';
+  gatewayMessage.value = 'Menghubungkan ke Gateway...';
+
+  try {
+    const res = await fetch('/pos/qris/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify({
+        order_id: invoiceNo.value,
+        amount: grandTotal.value
+      })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      gatewayQrUrl.value = data.qr_url;
+      gatewayStatus.value = 'pending';
+      gatewayMessage.value = data.provider === 'simulator' 
+        ? 'Mode Simulasi Gateway (Menunggu transfer...)' 
+        : 'Menunggu transfer pembeli...';
+      
+      // Polling status setiap 2.5 detik
+      gatewayPollTimer = setInterval(async () => {
+        if (!showQrisModal.value || qrisMode.value !== 'gateway') {
+          stopGatewayPolling();
+          return;
+        }
+        try {
+          const checkRes = await fetch('/pos/qris/check/' + invoiceNo.value);
+          const checkData = await checkRes.json();
+          if (checkData.status === 'settlement') {
+            stopGatewayPolling();
+            gatewayStatus.value = 'settlement';
+            gatewayMessage.value = '✓ Pembayaran Berhasil Diterima!';
+            playBeepSound('payment_success');
+            setTimeout(() => {
+              finalizeTransaction('QRIS', grandTotal.value, 0, true);
+            }, 800);
+          }
+        } catch (e) {
+          console.warn('Polling status QRIS:', e);
+        }
+      }, 2500);
+    } else {
+      gatewayStatus.value = 'error';
+      gatewayMessage.value = 'Gagal generate QRIS Gateway.';
+    }
+  } catch (err) {
+    gatewayStatus.value = 'error';
+    gatewayMessage.value = 'Koneksi Gateway bermasalah.';
+  }
+}
+
+async function simulateGatewaySuccess() {
+  try {
+    const res = await fetch('/pos/qris/check/' + invoiceNo.value + '?simulate=true');
+    const data = await res.json();
+    if (data.status === 'settlement') {
+      stopGatewayPolling();
+      gatewayStatus.value = 'settlement';
+      gatewayMessage.value = '✓ Pembayaran Berhasil (Simulasi)!';
+      playBeepSound('payment_success');
+      setTimeout(() => {
+        finalizeTransaction('QRIS', grandTotal.value, 0, true);
+      }, 800);
+    }
+  } catch (e) {
+    finalizeTransaction('QRIS', grandTotal.value, 0, true);
+  }
+}
+
+function openQrisConfigModal() {
+  tempQrisPayloadInput.value = storeQrisPayload.value;
+  showQrisConfigModal.value = true;
+}
+
+function saveQrisConfig() {
+  storeQrisPayload.value = tempQrisPayloadInput.value.trim();
+  localStorage.setItem('store_qris_payload', storeQrisPayload.value);
+  router.post('/pos/settings', {
+    settings: {
+      qris_static_payload: storeQrisPayload.value
+    }
+  }, { preserveScroll: true, preserveState: true });
+  showQrisConfigModal.value = false;
+  playBeepSound('success');
+}
 
 function payQris() {
   if (cart.value.length === 0) {
@@ -906,6 +1036,14 @@ function payQris() {
     return;
   }
   showQrisModal.value = true;
+  if (qrisMode.value === 'gateway') {
+    startGatewayQris();
+  }
+}
+
+function closeQrisModal() {
+  stopGatewayPolling();
+  showQrisModal.value = false;
 }
 
 function payKasbon() {
@@ -986,6 +1124,7 @@ function finalizeTransaction(method, paidAmount, changeAmount, autoPrint = false
   globalDiscount.value = 0;
   globalDiscountNote.value = '';
   inlineCashGiven.value = '0';
+  stopGatewayPolling();
   showQrisModal.value = false;
   invoiceNo.value = generateInvoiceNo();
 
@@ -3572,32 +3711,182 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 8. ANDROID DIALOG 7: QRIS (FLAT) -->
-    <div v-if="showQrisModal" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col items-center shadow-2xl p-5 gap-3.5 border border-slate-200">
-        <div class="flex justify-between items-center w-full border-b border-slate-200 pb-2">
-          <h3 class="font-bold text-xs text-slate-900 flex items-center gap-1.5">📱 QRIS Toko Kelontong</h3>
-          <button @click="showQrisModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
-        </div>
-        
-        <div class="text-center flex flex-col items-center gap-2">
-          <span class="text-xs text-slate-500">Arahkan aplikasi m-banking atau e-wallet:</span>
-          <div class="bg-white p-3.5 rounded-xl w-44 h-44 flex flex-col items-center justify-center border border-slate-200 shadow-2xs relative">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ROZAK-MART-POS-TRANSACTION-MOCKUP" alt="QRIS Mockup" class="w-36 h-36" />
-            <span class="absolute bottom-1 text-[8px] font-bold text-slate-500 font-mono tracking-wider bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">QRIS RESMI</span>
+    <!-- 8. ANDROID DIALOG 7: QRIS DUA MODE DENGAN SWITCH TOGGLE (FLAT MODERN) -->
+    <div v-if="showQrisModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-md flex flex-col items-center shadow-2xl p-5 gap-3 border border-slate-200">
+        <!-- Header Dialog -->
+        <div class="flex justify-between items-center w-full border-b border-slate-200 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base border border-blue-200 font-bold shadow-2xs">📱</span>
+            <div>
+              <h3 class="font-bold text-xs text-slate-900 leading-tight">Pembayaran QRIS Toko</h3>
+              <p class="text-[10px] text-slate-500">Scan via BCA, Mandiri, BRI, GoPay, Dana, OVO, ShopeePay</p>
+            </div>
           </div>
-          <div class="flex flex-col items-center">
-            <span class="text-[10px] text-slate-400 uppercase tracking-wider">Total Pembayaran:</span>
+          <button @click="closeQrisModal" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <!-- SWITCH TOMBOL OPSI 2 (GATEWAY) VS OPSI 3 (QRIS TOKO) -->
+        <div class="w-full bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center">
+          <button 
+            type="button"
+            @click="setQrisMode('emvco')" 
+            :class="qrisMode === 'emvco' ? 'bg-white text-blue-700 shadow-2xs font-bold border border-slate-200' : 'text-slate-600 hover:text-slate-900 font-medium'"
+            class="flex-1 py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>🏷️</span>
+            <span>QRIS Toko (Nominal Pas)</span>
+          </button>
+          <button 
+            type="button"
+            @click="setQrisMode('gateway')" 
+            :class="qrisMode === 'gateway' ? 'bg-white text-emerald-700 shadow-2xs font-bold border border-slate-200' : 'text-slate-600 hover:text-slate-900 font-medium'"
+            class="flex-1 py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>⚡</span>
+            <span>QRIS Gateway (Auto-Detect)</span>
+          </button>
+        </div>
+
+        <!-- ISI TAMPILAN BERDASARKAN MODE -->
+        
+        <!-- OPSI 3: QRIS TOKO EMVCo (Nominal Terisi Otomatis) -->
+        <div v-if="qrisMode === 'emvco'" class="w-full text-center flex flex-col items-center gap-2">
+          <div class="flex items-center justify-between w-full px-1">
+            <span class="text-[10px] text-slate-500 font-medium">QRIS Resmi Toko Rozak Mart</span>
+            <button 
+              type="button" 
+              @click="openQrisConfigModal" 
+              class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer hover:underline"
+            >
+              <span>⚙️</span> Atur String QR Toko
+            </button>
+          </div>
+
+          <!-- Kotak QR Code -->
+          <div class="bg-white p-3 rounded-xl w-52 h-52 flex flex-col items-center justify-center border border-slate-200 shadow-2xs relative">
+            <img :src="dynamicEmvcoQrUrl" alt="QRIS Dinamis Toko" class="w-44 h-44 object-contain" />
+            <span class="absolute bottom-1 text-[8px] font-bold text-slate-500 font-mono tracking-wider bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+              NOMINAL TERISI OTOMATIS
+            </span>
+          </div>
+
+          <div class="bg-blue-50/70 border border-blue-200 rounded-xl px-3.5 py-1.5 w-full flex items-center justify-between">
+            <div class="text-left">
+              <span class="text-[9px] text-blue-700 uppercase font-bold block">Tagihan Terkunci di QR:</span>
+              <span class="text-xs text-slate-500">Pembeli tidak perlu ketik nominal</span>
+            </div>
             <span class="font-mono font-black text-emerald-600 text-lg">Rp {{ grandTotal.toLocaleString('id-ID') }}</span>
           </div>
+
+          <div class="grid grid-cols-3 gap-2 w-full pt-1 border-t border-slate-200">
+            <button @click="closeQrisModal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
+            <button @click="finalizeTransaction('QRIS', grandTotal, 0, false)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs">Selesai</button>
+            <button @click="finalizeTransaction('QRIS', grandTotal, 0, true)" class="bg-blue-700 hover:bg-blue-800 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-700 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
+              <span>🖨️</span> Selesai & Cetak
+            </button>
+          </div>
         </div>
-        
-        <div class="grid grid-cols-3 gap-2 w-full pt-2 border-t border-slate-200">
-          <button @click="showQrisModal = false" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
-          <button @click="finalizeTransaction('QRIS', grandTotal, 0, false)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs">Selesai</button>
-          <button @click="finalizeTransaction('QRIS', grandTotal, 0, true)" class="bg-blue-700 hover:bg-blue-800 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-700 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
-            <span>🖨️</span> Selesai & Cetak
+
+        <!-- OPSI 2: QRIS GATEWAY AUTO-DETECT (Realtime Polling) -->
+        <div v-else class="w-full text-center flex flex-col items-center gap-2">
+          <div class="flex items-center justify-between w-full px-1">
+            <span class="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              Realtime Payment Auto-Detect
+            </span>
+            <span class="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-mono">Invoice: {{ invoiceNo }}</span>
+          </div>
+
+          <!-- Kotak QR Code Gateway -->
+          <div class="bg-white p-3 rounded-xl w-52 h-52 flex flex-col items-center justify-center border border-slate-200 shadow-2xs relative overflow-hidden">
+            <div v-if="gatewayStatus === 'loading'" class="flex flex-col items-center justify-center gap-2">
+              <div class="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <span class="text-[10px] text-slate-500 font-medium">Menghubungi gateway...</span>
+            </div>
+            <template v-else-if="gatewayStatus === 'pending'">
+              <img :src="gatewayQrUrl" alt="QRIS Gateway" class="w-44 h-44 object-contain" />
+              <span class="absolute bottom-1 text-[8px] font-bold text-emerald-700 font-mono tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                AUTO-SETTLEMENT
+              </span>
+            </template>
+            <div v-else-if="gatewayStatus === 'settlement'" class="flex flex-col items-center justify-center gap-1.5 p-4 text-emerald-600">
+              <span class="text-4xl">✓</span>
+              <span class="text-xs font-black">LUNAS!</span>
+              <span class="text-[10px] text-slate-500">Mencetak struk belanja...</span>
+            </div>
+            <div v-else class="flex flex-col items-center justify-center gap-2 p-3">
+              <span class="text-xl">⚠️</span>
+              <span class="text-[10px] text-rose-600 font-bold leading-tight">{{ gatewayMessage }}</span>
+              <button @click="startGatewayQris" class="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200">🔄 Coba Lagi</button>
+            </div>
+          </div>
+
+          <!-- Status Banner Gateway -->
+          <div 
+            :class="gatewayStatus === 'settlement' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-slate-50 border-slate-200 text-slate-700'"
+            class="border rounded-xl px-3 py-1.5 w-full flex items-center justify-between"
+          >
+            <div class="text-left flex items-center gap-2">
+              <span v-if="gatewayStatus === 'pending'" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[10px] font-medium">{{ gatewayMessage }}</span>
+            </div>
+            <span class="font-mono font-black text-emerald-600 text-base">Rp {{ grandTotal.toLocaleString('id-ID') }}</span>
+          </div>
+
+          <!-- Tombol Aksi Gateway -->
+          <div class="grid grid-cols-2 gap-2 w-full pt-1 border-t border-slate-200">
+            <button @click="closeQrisModal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
+            <button 
+              @click="simulateGatewaySuccess" 
+              class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-xl font-bold border border-emerald-600 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Klik untuk memverifikasi pembayaran secara manual / simulasi lunas"
+            >
+              <span>⚡</span> Konfirmasi Lunas
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL PENGATURAN QRIS TOKO STATIS / STRING ASPI -->
+    <div v-if="showQrisConfigModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-[70] flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-md flex flex-col shadow-2xl p-5 gap-3.5 border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="text-lg p-1.5 bg-blue-50 rounded-xl border border-blue-200">⚙️</span>
+            <div>
+              <h3 class="font-bold text-xs text-slate-900 leading-tight">Pengaturan String QRIS Toko</h3>
+              <p class="text-[10px] text-slate-500">Salin teks QRIS dari stiker bank atau merchant Anda</p>
+            </div>
+          </div>
+          <button @click="showQrisConfigModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">String Payload QRIS Statis Toko (EMVCo):</label>
+          <textarea 
+            v-model="tempQrisPayloadInput" 
+            rows="4" 
+            placeholder="Contoh: 00020101021126630014ID.GO.IDC.WWW..." 
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-500 transition"
+          ></textarea>
+          <p class="text-[10px] text-slate-400 leading-relaxed">
+            💡 <strong>Cara mendapatkan:</strong> Buka aplikasi pemindai barcode / kamera HP Anda, scan stiker QRIS toko Anda, lalu salin teks panjangnya dan tempel di sini. Sistem akan otomatis mengisi nominal belanjaan ke dalam QR tersebut.
+          </p>
+        </div>
+
+        <div class="flex gap-2 pt-2 border-t border-slate-200">
+          <button 
+            type="button" 
+            @click="tempQrisPayloadInput = ''" 
+            class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs py-2.5 px-3 rounded-xl font-bold border border-slate-200 transition cursor-pointer"
+          >
+            Reset Bawaan
           </button>
+          <button @click="showQrisConfigModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
+          <button @click="saveQrisConfig" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs">Simpan QRIS</button>
         </div>
       </div>
     </div>

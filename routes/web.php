@@ -20,6 +20,10 @@ Route::post('/pos/categories', [PosController::class, 'storeCategory'])->name('p
 Route::post('/pos/hold-orders', [PosController::class, 'storeHoldOrder'])->name('pos.hold.store');
 Route::delete('/pos/hold-orders/{id}', [PosController::class, 'deleteHoldOrder'])->name('pos.hold.delete');
 
+Route::post('/pos/qris/generate', [PosController::class, 'generateQris'])->name('pos.qris.generate');
+Route::get('/pos/qris/check/{orderId}', [PosController::class, 'checkQrisStatus'])->name('pos.qris.check');
+Route::post('/pos/settings', [PosController::class, 'updateSettings'])->name('pos.settings.update');
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

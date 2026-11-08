@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -410,5 +411,134 @@ class PosController extends Controller
         $customer->delete();
 
         return redirect()->back()->with('success', 'Pelanggan berhasil dihapus.');
+    }
+
+    /**
+     * Generate Dynamic QRIS (Midtrans Gateway atau Standalone Mock)
+     */
+    public function generateQris(Request $request)
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|string',
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $orderId = $validated['order_id'];
+        $amount = (int) $validated['amount'];
+
+        $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
+        $isProduction = config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false));
+
+        if (!empty($serverKey)) {
+            $baseUrl = $isProduction ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+            
+            try {
+                $response = Http::withBasicAuth($serverKey, '')
+                    ->acceptJson()
+                    ->post("{$baseUrl}/v2/charge", [
+                        'payment_type' => 'qris',
+                        'transaction_details' => [
+                            'order_id' => $orderId,
+                            'gross_amount' => $amount,
+                        ],
+                        'qris' => [
+                            'acquirer' => 'gopay',
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $qrString = $data['qr_string'] ?? '';
+                    $qrUrl = $data['actions'][0]['url'] ?? ('https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrString));
+
+                    return response()->json([
+                        'status' => 'success',
+                        'provider' => 'midtrans',
+                        'order_id' => $orderId,
+                        'amount' => $amount,
+                        'qr_string' => $qrString,
+                        'qr_url' => $qrUrl,
+                        'message' => 'QRIS Midtrans berhasil di-generate.',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Fallback jika API gagal
+            }
+        }
+
+        // Mock / Sandbox Simulator Mode
+        return response()->json([
+            'status' => 'success',
+            'provider' => 'simulator',
+            'order_id' => $orderId,
+            'amount' => $amount,
+            'qr_string' => "ROZAK-MART-GATEWAY-QRIS-{$orderId}-{$amount}",
+            'qr_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode("ROZAK-MART-POS-GATEWAY-{$orderId}-RP-{$amount}"),
+            'message' => 'Simulasi Gateway Aktif (Siap connect Midtrans / TriPay).',
+        ]);
+    }
+
+    /**
+     * Cek Status Transaksi QRIS (Polling dari POS)
+     */
+    public function checkQrisStatus(Request $request, $orderId)
+    {
+        // Cek jika kasir/pembeli memicu simulasi lunas
+        if ($request->query('simulate') === 'true') {
+            return response()->json([
+                'status' => 'settlement',
+                'order_id' => $orderId,
+                'message' => 'Pembayaran terverifikasi lunas (Simulasi).',
+            ]);
+        }
+
+        $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
+        $isProduction = config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false));
+
+        if (!empty($serverKey)) {
+            $baseUrl = $isProduction ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+            try {
+                $response = Http::withBasicAuth($serverKey, '')
+                    ->acceptJson()
+                    ->get("{$baseUrl}/v2/{$orderId}/status");
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $transactionStatus = $data['transaction_status'] ?? 'pending';
+                    
+                    return response()->json([
+                        'status' => $transactionStatus,
+                        'order_id' => $orderId,
+                        'data' => $data,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Return pending on error
+            }
+        }
+
+        return response()->json([
+            'status' => 'pending',
+            'order_id' => $orderId,
+        ]);
+    }
+
+    /**
+     * Simpan Pengaturan POS (QRIS & Info Toko)
+     */
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'settings' => 'required|array',
+        ]);
+
+        foreach ($validated['settings'] as $key => $val) {
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => is_bool($val) ? ($val ? 'true' : 'false') : (string) $val]
+            );
+        }
+
+        return redirect()->back()->with('success', 'Pengaturan berhasil disimpan.');
     }
 }
