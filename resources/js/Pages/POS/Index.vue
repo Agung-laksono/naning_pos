@@ -288,6 +288,48 @@ function handleClickOutsideSearch(event) {
   }
 }
 
+// ================= GLOBAL HARDWARE SCANNER LISTENER (USB / BLUETOOTH / WIRELESS GUN) =================
+let hardwareBarcodeBuffer = '';
+let lastHardwareKeyTime = 0;
+
+function handleGlobalHardwareScan(e) {
+  const activeEl = document.activeElement;
+  const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+  const isSearchInput = activeEl && activeEl.id === 'pos-search-input';
+
+  const now = Date.now();
+  const timeDiff = now - lastHardwareKeyTime;
+  lastHardwareKeyTime = now;
+
+  // Scanner hardware mengirim tombol 'Enter' di akhir penembakan barcode
+  if (e.key === 'Enter') {
+    if (hardwareBarcodeBuffer.length >= 3) {
+      const code = hardwareBarcodeBuffer.trim();
+      hardwareBarcodeBuffer = '';
+
+      // Jika fokus bukan di search input (karena search input punya handler sendiri)
+      if (!isSearchInput) {
+        e.preventDefault();
+        handleScannedBarcode(code);
+      }
+    } else {
+      hardwareBarcodeBuffer = '';
+    }
+    return;
+  }
+
+  // Scanner fisik mengetik rentetan angka sangat cepat (jeda < 70ms antar karakter).
+  // Jika jeda > 70ms, ini ketikan manual tangan manusia, reset buffer.
+  if (timeDiff > 70) {
+    hardwareBarcodeBuffer = '';
+  }
+
+  // Rekam karakter alfanumerik biasa jika tidak sedang mengetik di input modal form lain
+  if (e.key && e.key.length === 1 && (!isInput || isSearchInput)) {
+    hardwareBarcodeBuffer += e.key;
+  }
+}
+
 function promptUnregisteredBarcode(barcode) {
   unregisteredBarcode.value = barcode;
   showUnregisteredModal.value = true;
@@ -1611,6 +1653,7 @@ onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.addEventListener('appinstalled', handleAppInstalled);
   document.addEventListener('click', handleClickOutsideSearch);
+  window.addEventListener('keydown', handleGlobalHardwareScan);
 
   // Buka kunci AudioContext otomatis saat klik/interaksi pertama pengguna
   const unlockAudioOnce = () => {
@@ -1630,6 +1673,7 @@ onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.removeEventListener('appinstalled', handleAppInstalled);
   document.removeEventListener('click', handleClickOutsideSearch);
+  window.removeEventListener('keydown', handleGlobalHardwareScan);
   if (html5QrCode && isCameraActive.value) {
     html5QrCode.stop().catch(() => {});
   }
@@ -1678,6 +1722,7 @@ onUnmounted(() => {
           </button>
 
           <input 
+            id="pos-search-input"
             type="text" 
             v-model="searchQuery" 
             @input="onSearchInput"
