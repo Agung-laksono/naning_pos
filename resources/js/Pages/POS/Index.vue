@@ -1329,6 +1329,16 @@ function selectCustomer(cust) {
 const isFullscreen = ref(false);
 const deferredInstallPrompt = ref(null);
 const canInstallPwa = ref(false);
+const isPwaStandalone = ref(false);
+
+function checkPwaStandalone() {
+  if (typeof window !== 'undefined') {
+    isPwaStandalone.value = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      window.matchMedia('(display-mode: fullscreen)').matches || 
+      window.navigator.standalone === true;
+  }
+}
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -1350,13 +1360,23 @@ function toggleFullscreen() {
 }
 
 async function triggerPwaInstall() {
-  if (!deferredInstallPrompt.value) return;
-  deferredInstallPrompt.value.prompt();
-  const choice = await deferredInstallPrompt.value.userChoice;
-  if (choice && choice.outcome === 'accepted') {
-    canInstallPwa.value = false;
+  playBeepSound('click');
+  if (deferredInstallPrompt.value) {
+    deferredInstallPrompt.value.prompt();
+    const choice = await deferredInstallPrompt.value.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      canInstallPwa.value = false;
+      isPwaStandalone.value = true;
+    }
+    deferredInstallPrompt.value = null;
+  } else {
+    alert(
+      'Petunjuk Pemasangan PWA Naning POS:\n\n' +
+      '1. Di browser Chrome tablet/HP, ketuk ikon titik tiga (⋮) di pojok kanan atas.\n' +
+      '2. Pilih menu "Tambahkan ke Layar Utama" (Add to Home screen) atau "Pasang Aplikasi".\n' +
+      '3. Setelah terpasang, buka aplikasi langsung dari ikon Layar Utama tablet agar tampil Fullscreen tanpa address bar Chrome.'
+    );
   }
-  deferredInstallPrompt.value = null;
 }
 
 function handleFullscreenChange() {
@@ -1372,11 +1392,28 @@ function handleBeforeInstallPrompt(e) {
 function handleAppInstalled() {
   canInstallPwa.value = false;
   deferredInstallPrompt.value = null;
+  isPwaStandalone.value = true;
 }
 
 onMounted(() => {
   updateClock();
   clockTimer = setInterval(updateClock, 1000);
+
+  checkPwaStandalone();
+
+  // Tangkap prompt PWA jika sudah ditangkap lebih awal oleh app.blade.php
+  if (typeof window !== 'undefined') {
+    if (window.__pwaInstallPrompt) {
+      deferredInstallPrompt.value = window.__pwaInstallPrompt;
+      canInstallPwa.value = true;
+    }
+    window.addEventListener('pwa-prompt-ready', () => {
+      if (window.__pwaInstallPrompt) {
+        deferredInstallPrompt.value = window.__pwaInstallPrompt;
+        canInstallPwa.value = true;
+      }
+    });
+  }
 
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -1623,17 +1660,25 @@ onUnmounted(() => {
             {{ currentTime }}
           </span>
 
-          <!-- Tombol Pasang PWA ke Layar Utama jika didukung browser -->
+          <!-- Tombol Pasang PWA ke Layar Utama atau Badge Status PWA -->
           <button 
-            v-if="canInstallPwa"
+            v-if="!isPwaStandalone"
             @click="triggerPwaInstall"
             type="button"
-            title="Pasang Naning POS ke Layar Utama Tablet / Desktop"
+            title="Pasang Naning POS ke Layar Utama Tablet / Desktop (PWA)"
             class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs transition cursor-pointer"
           >
             <span>📲</span>
-            <span>Pasang</span>
+            <span>Pasang PWA</span>
           </button>
+          <span 
+            v-else
+            title="Naning POS aktif dalam mode PWA Standalone"
+            class="bg-emerald-50 text-emerald-700 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>PWA Aktif</span>
+          </span>
 
           <!-- Tombol Mode Layar Penuh (Fullscreen) -->
           <button 

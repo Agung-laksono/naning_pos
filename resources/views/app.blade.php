@@ -7,13 +7,23 @@
         <title inertia>{{ config('app.name', 'TPKmart POS') }} - Naning POS</title>
 
         <!-- PWA Web App Manifest & Standalone Fullscreen Meta Tags -->
-        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="manifest" href="/manifest.json">
         <meta name="theme-color" content="#2563eb">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Naning POS">
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+        <script>
+            // Tangkap event sebelum Vue sempat me-load agar prompt instalasi tidak terlewat
+            window.__pwaInstallPrompt = null;
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                window.__pwaInstallPrompt = e;
+                window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+            });
+        </script>
 
         <!-- Google Fonts: Roboto & Roboto Mono -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

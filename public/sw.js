@@ -1,23 +1,25 @@
 // Naning POS - Progressive Web App Service Worker
-const CACHE_NAME = 'naning-pos-cache-v1';
+const CACHE_NAME = 'naning-pos-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/pos',
-  '/manifest.webmanifest',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/icons/icon-maskable-512x512.png',
-  '/favicon.ico'
+  '/icons/icon-maskable-512x512.png'
 ];
 
-// Install: Cache initial static app shell
+// Install: Cache initial static app shell dengan toleransi kegagalan per-item
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('PWA: Beberapa asset awal dilewati saat install:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('PWA: Dilewati caching:', asset, err);
+        }
+      }
     }).then(() => self.skipWaiting())
   );
 });

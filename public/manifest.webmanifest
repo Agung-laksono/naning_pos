@@ -2,11 +2,11 @@
   "name": "Naning POS - Toko Kelontong",
   "short_name": "Naning POS",
   "description": "Sistem Kasir Toko Kelontong Modern Android Tablet Edition",
-  "id": "/pos",
-  "start_url": "/pos",
+  "id": "/",
+  "start_url": "/",
   "scope": "/",
-  "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
   "orientation": "landscape",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
@@ -34,7 +34,7 @@
   "shortcuts": [
     {
       "name": "Buka Kasir",
-      "url": "/pos",
+      "url": "/",
       "description": "Mulai Transaksi Kasir Toko"
     }
   ]
