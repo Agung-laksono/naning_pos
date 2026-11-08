@@ -1471,34 +1471,37 @@ onUnmounted(() => {
 
         <div class="w-px h-6 bg-slate-200 shrink-0"></div>
 
-        <!-- Search Bar Terintegrasi Icon Kamera Scanner -->
+        <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri -->
         <div class="relative flex-1">
-          <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          </div>
+          <!-- Tombol Kamera Scanner Cepat di Sisi Kiri Input -->
+          <button 
+            @click="triggerBarcodeScanner" 
+            type="button"
+            title="Buka Scanner Barcode Kamera (Sentuh untuk Memindai)" 
+            class="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 text-white flex items-center justify-center transition shadow-xs cursor-pointer z-10"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          </button>
+
           <input 
             type="text" 
             v-model="searchQuery" 
             @keydown.enter="handleSearchSubmit"
             placeholder="Scan barcode atau ketik nama produk..."
-            class="w-full bg-[#f1f3f4] text-slate-800 text-xs font-medium placeholder-slate-400 rounded-full pl-9 pr-18 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition border border-transparent"
+            class="w-full bg-[#f1f3f4] text-slate-800 text-xs font-medium placeholder-slate-400 rounded-full pl-11 pr-8 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition border border-transparent"
           />
-          <!-- Icon Action di Bagian Kanan Form Search -->
-          <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+
+          <!-- Action di Bagian Kanan Form Search (Clear & Ikon Kaca Pembesar) -->
+          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400">
             <button 
               v-if="searchQuery" 
               @click="clearSearchInput" 
-              class="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition"
+              type="button"
+              class="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition cursor-pointer"
             >
               ✕
             </button>
-            <button 
-              @click="triggerBarcodeScanner" 
-              title="Buka Scanner Barcode Kamera" 
-              class="w-7 h-7 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white flex items-center justify-center transition shadow-2xs cursor-pointer active:scale-95"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            </button>
+            <svg v-else class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
         </div>
 
@@ -1581,14 +1584,23 @@ onUnmounted(() => {
 
       <!-- State Keranjang Kosong -->
       <div v-else class="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
-        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-3xl mb-2">🛒</div>
+        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-3xl mb-2">🛒</div>
         <p class="text-xs font-bold text-slate-700">Keranjang Belanja Masih Kosong</p>
-        <p class="text-[11px] text-slate-400 mt-0.5 mb-3">Scan barcode, pilih dari katalog atau daftarkan produk baru</p>
+        <p class="text-[11px] text-slate-400 mt-0.5 mb-3">Scan barcode produk, pilih dari galeri atau daftarkan produk baru</p>
         <div class="flex items-center gap-2">
-          <button @click="showGalleryModal = true" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs transition">
+          <!-- Tombol Utama: Scan Barcode Kamera -->
+          <button 
+            @click="triggerBarcodeScanner" 
+            type="button"
+            class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>Scan Barcode</span>
+          </button>
+          <button @click="showGalleryModal = true" type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-full flex items-center gap-1.5 border border-slate-200 transition cursor-pointer">
             <span>📂</span> Buka Galeri
           </button>
-          <button @click="openAddProductModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs transition">
+          <button @click="openAddProductModal()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-full flex items-center gap-1.5 shadow-xs transition cursor-pointer">
             <span>➕</span> Tambah Barang
           </button>
         </div>
