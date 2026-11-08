@@ -1659,37 +1659,6 @@ onUnmounted(() => {
           <span class="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
             {{ currentTime }}
           </span>
-
-          <!-- Tombol Pasang PWA ke Layar Utama atau Badge Status PWA -->
-          <button 
-            v-if="!isPwaStandalone"
-            @click="triggerPwaInstall"
-            type="button"
-            title="Pasang Naning POS ke Layar Utama Tablet / Desktop (PWA)"
-            class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs transition cursor-pointer"
-          >
-            <span>📲</span>
-            <span>Pasang PWA</span>
-          </button>
-          <span 
-            v-else
-            title="Naning POS aktif dalam mode PWA Standalone"
-            class="bg-emerald-50 text-emerald-700 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
-          >
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>PWA Aktif</span>
-          </span>
-
-          <!-- Tombol Mode Layar Penuh (Fullscreen) -->
-          <button 
-            @click="toggleFullscreen"
-            type="button"
-            :title="isFullscreen ? 'Keluar dari Mode Layar Penuh' : 'Masuk ke Mode Layar Penuh (Fullscreen)'"
-            class="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 hover:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1 transition cursor-pointer"
-          >
-            <span>{{ isFullscreen ? '🗗' : '⛶' }}</span>
-            <span class="text-[9px]">{{ isFullscreen ? 'Kecil' : 'Full' }}</span>
-          </button>
         </div>
       </div>
 
