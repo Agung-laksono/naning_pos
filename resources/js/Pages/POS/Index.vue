@@ -157,11 +157,136 @@ function clearCart() {
   }
 }
 
-// ================= SEARCH & SCANNER =================
+// ================= SEARCH & AUTO-SUGGEST DROPDOWN =================
 const searchQuery = ref('');
+const isSearchDropdownOpen = ref(false);
+const highlightedIndex = ref(-1);
+const searchUnregisteredQuery = ref(null);
 const scannerTarget = ref('cart'); // 'cart' | 'newProduct'
 const showUnregisteredModal = ref(false);
 const unregisteredBarcode = ref('');
+
+const searchSuggestions = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return [];
+
+  return localProducts.value.filter(p => {
+    const matchName = (p.name || '').toLowerCase().includes(q);
+    const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
+    return matchName || matchBarcode;
+  }).slice(0, 8);
+});
+
+function onSearchInput() {
+  const q = searchQuery.value.trim();
+  if (q) {
+    isSearchDropdownOpen.value = true;
+    searchUnregisteredQuery.value = null;
+    highlightedIndex.value = searchSuggestions.value.length > 0 ? 0 : -1;
+  } else {
+    isSearchDropdownOpen.value = false;
+    highlightedIndex.value = -1;
+    searchUnregisteredQuery.value = null;
+  }
+}
+
+function onSearchFocus() {
+  if (searchQuery.value.trim()) {
+    isSearchDropdownOpen.value = true;
+  }
+}
+
+function handleSearchKeydown(e) {
+  if (!isSearchDropdownOpen.value) {
+    if (e.key === 'ArrowDown' && searchSuggestions.value.length > 0) {
+      isSearchDropdownOpen.value = true;
+      highlightedIndex.value = 0;
+      e.preventDefault();
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (searchSuggestions.value.length > 0) {
+      highlightedIndex.value = (highlightedIndex.value + 1) % searchSuggestions.value.length;
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (searchSuggestions.value.length > 0) {
+      highlightedIndex.value = highlightedIndex.value <= 0 
+        ? searchSuggestions.value.length - 1 
+        : highlightedIndex.value - 1;
+    }
+  } else if (e.key === 'Escape') {
+    closeSearchDropdown();
+  }
+}
+
+function handleSearchSubmit() {
+  const query = searchQuery.value.trim();
+  if (!query) return;
+  const lowerQuery = query.toLowerCase();
+
+  // 1. Cek apakah ada barcode yang cocok persis (misal dari scanner fisik tembak)
+  const byBarcode = localProducts.value.find(p => (p.barcode || '').toLowerCase() === lowerQuery);
+  if (byBarcode) {
+    selectSuggestion(byBarcode);
+    return;
+  }
+
+  // 2. Jika ada item yang dipilih / disorot dari auto-suggest
+  if (highlightedIndex.value >= 0 && searchSuggestions.value[highlightedIndex.value]) {
+    selectSuggestion(searchSuggestions.value[highlightedIndex.value]);
+    return;
+  }
+
+  // 3. Jika hanya ada 1 hasil pencarian yang cocok
+  if (searchSuggestions.value.length === 1) {
+    selectSuggestion(searchSuggestions.value[0]);
+    return;
+  }
+
+  // 4. Jika ada beberapa hasil pencarian, biarkan dropdown terbuka
+  if (searchSuggestions.value.length > 1) {
+    isSearchDropdownOpen.value = true;
+    highlightedIndex.value = 0;
+    return;
+  }
+
+  // 5. Jika TIDAK ditemukan sama sekali
+  playBeepSound('warning');
+  isSearchDropdownOpen.value = true;
+  searchUnregisteredQuery.value = query;
+}
+
+function selectSuggestion(product) {
+  addToCart(product);
+  closeSearchDropdown();
+}
+
+function closeSearchDropdown() {
+  searchQuery.value = '';
+  isSearchDropdownOpen.value = false;
+  highlightedIndex.value = -1;
+  searchUnregisteredQuery.value = null;
+}
+
+function clearSearchInput() {
+  closeSearchDropdown();
+}
+
+function quickRegisterFromSearch(query) {
+  closeSearchDropdown();
+  openAddProductModal(query);
+}
+
+function handleClickOutsideSearch(event) {
+  const el = document.getElementById('pos-search-container');
+  if (el && !el.contains(event.target)) {
+    isSearchDropdownOpen.value = false;
+  }
+}
 
 function promptUnregisteredBarcode(barcode) {
   unregisteredBarcode.value = barcode;
@@ -172,37 +297,6 @@ function confirmRegisterUnregistered() {
   const code = unregisteredBarcode.value;
   showUnregisteredModal.value = false;
   openAddProductModal(code);
-}
-
-function clearSearchInput() {
-  searchQuery.value = '';
-}
-
-function handleSearchSubmit() {
-  const query = searchQuery.value.trim().toLowerCase();
-  if (!query) return;
-
-  const byBarcode = localProducts.value.find(p => p.barcode === query);
-  if (byBarcode) {
-    addToCart(byBarcode);
-    searchQuery.value = '';
-    return;
-  }
-
-  const byName = localProducts.value.find(p => p.name.toLowerCase().includes(query));
-  if (byName) {
-    addToCart(byName);
-    searchQuery.value = '';
-    return;
-  }
-
-  // Jika berupa angka barcode 6 digit atau lebih tapi belum terdaftar di katalog
-  if (/^\d{6,}$/.test(query)) {
-    promptUnregisteredBarcode(searchQuery.value.trim());
-  } else {
-    openAddProductModal(searchQuery.value.trim());
-  }
-  searchQuery.value = '';
 }
 
 // ================= KAMERA SCANNER BARCODE (FULLSCREEN TRANSPARAN / DOCK KANAN 35%) =================
@@ -1418,6 +1512,7 @@ onMounted(() => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.addEventListener('appinstalled', handleAppInstalled);
+  document.addEventListener('click', handleClickOutsideSearch);
 
   // Buka kunci AudioContext otomatis saat klik/interaksi pertama pengguna
   const unlockAudioOnce = () => {
@@ -1436,6 +1531,7 @@ onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.removeEventListener('appinstalled', handleAppInstalled);
+  document.removeEventListener('click', handleClickOutsideSearch);
   if (html5QrCode && isCameraActive.value) {
     html5QrCode.stop().catch(() => {});
   }
@@ -1471,8 +1567,8 @@ onUnmounted(() => {
 
         <div class="w-px h-6 bg-slate-200 shrink-0"></div>
 
-        <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri -->
-        <div class="relative flex-1">
+        <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri & Auto-Suggest Dropdown -->
+        <div id="pos-search-container" class="relative flex-1">
           <!-- Tombol Kamera Scanner Cepat di Sisi Kiri Input -->
           <button 
             @click="triggerBarcodeScanner" 
@@ -1486,9 +1582,13 @@ onUnmounted(() => {
           <input 
             type="text" 
             v-model="searchQuery" 
-            @keydown.enter="handleSearchSubmit"
+            @input="onSearchInput"
+            @focus="onSearchFocus"
+            @keydown="handleSearchKeydown"
+            @keydown.enter.prevent="handleSearchSubmit"
             placeholder="Scan barcode atau ketik nama produk..."
-            class="w-full bg-[#f1f3f4] text-slate-800 text-xs font-medium placeholder-slate-400 rounded-full pl-11 pr-8 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition border border-transparent"
+            autocomplete="off"
+            class="w-full bg-[#f1f3f4] text-slate-800 text-xs font-medium placeholder-slate-400 rounded-full pl-11 pr-8 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition border border-transparent shadow-xs"
           />
 
           <!-- Action di Bagian Kanan Form Search (Clear & Ikon Kaca Pembesar) -->
@@ -1502,6 +1602,71 @@ onUnmounted(() => {
               ✕
             </button>
             <svg v-else class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+
+          <!-- Dropdown Hasil Pencarian Live & Auto-Suggest -->
+          <div 
+            v-if="isSearchDropdownOpen && (searchSuggestions.length > 0 || searchUnregisteredQuery)" 
+            class="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 flex flex-col divide-y divide-slate-100"
+          >
+            <!-- Header Ringkas Info Hasil -->
+            <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <span>Hasil Pencarian ({{ searchSuggestions.length }})</span>
+              <span class="text-[10px] text-slate-400">Pilih atau tekan Enter</span>
+            </div>
+
+            <!-- List Hasil Cocok -->
+            <div v-if="searchSuggestions.length > 0" class="overflow-y-auto max-h-[300px] divide-y divide-slate-50">
+              <div 
+                v-for="(item, idx) in searchSuggestions" 
+                :key="(item.id || item.barcode || '') + '-' + idx"
+                @click="selectSuggestion(item)"
+                @mouseenter="highlightedIndex = idx"
+                :class="[
+                  'px-3 py-2 flex items-center justify-between cursor-pointer transition select-none',
+                  highlightedIndex === idx ? 'bg-blue-50 text-blue-900' : 'hover:bg-slate-50'
+                ]"
+              >
+                <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                  <span class="text-xl p-1 bg-slate-100 rounded-xl shrink-0">{{ item.icon || '📦' }}</span>
+                  <div class="truncate">
+                    <div class="text-xs font-bold text-slate-900 truncate">{{ item.name }}</div>
+                    <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                      <span v-if="item.barcode">#{{ item.barcode }}</span>
+                      <span v-if="item.barcode" class="text-slate-300">•</span>
+                      <span>{{ getProductCategoryName(item) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <div class="text-xs font-mono font-black text-slate-900">
+                    Rp {{ (item.units && item.units[0] ? item.units[0].price : (item.price || 0)).toLocaleString('id-ID') }}
+                  </div>
+                  <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded font-bold">
+                    {{ item.units && item.units[0] ? item.units[0].name : (item.unit || 'Pcs') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- State Jika Tidak Ditemukan / Tombol Daftarkan Barang Baru -->
+            <div v-if="searchSuggestions.length === 0 && searchUnregisteredQuery" class="p-3 text-center bg-amber-50/50">
+              <div class="text-xs font-bold text-slate-800 mb-0.5">
+                Produk "{{ searchUnregisteredQuery }}" Belum Terdaftar
+              </div>
+              <p class="text-[10px] text-slate-500 mb-2">
+                Barcode atau nama barang tidak ditemukan di katalog toko
+              </p>
+              <button 
+                @click="quickRegisterFromSearch(searchUnregisteredQuery)"
+                type="button"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+              >
+                <span>➕</span>
+                <span>Daftarkan Produk Baru</span>
+              </button>
+            </div>
           </div>
         </div>
 
