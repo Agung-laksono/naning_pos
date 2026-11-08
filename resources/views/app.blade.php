@@ -2,9 +2,18 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=1097, height=686, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-        <title inertia>{{ config('app.name', 'TPKmart POS') }} - Android Tablet (1097x686)</title>
+        <title inertia>{{ config('app.name', 'TPKmart POS') }} - Naning POS</title>
+
+        <!-- PWA Web App Manifest & Standalone Fullscreen Meta Tags -->
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#2563eb">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Naning POS">
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
         <!-- Google Fonts: Roboto & Roboto Mono -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,15 +21,16 @@
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@500;700;900&display=swap" rel="stylesheet">
 
         <style>
-            /* Mengunci rasio layar tablet persis 1097 x 686 (Android Tablet Immersive Mode) */
+            /* Mengisi layar tablet secara penuh 100vw x 100vh tanpa letterbox */
             html, body {
-                width: 1097px;
-                height: 686px;
-                max-width: 1097px;
-                max-height: 686px;
+                width: 100vw;
+                height: 100vh;
+                min-width: 100%;
+                min-height: 100%;
                 overflow: hidden;
-                margin: 0 auto;
-                background-color: #0f172a; /* Slate 900 framing untuk display letterbox jika dibuka di layar monitor lebih besar */
+                margin: 0;
+                padding: 0;
+                background-color: #0f172a;
                 user-select: none;
                 -webkit-user-select: none;
                 touch-action: manipulation;
@@ -99,8 +109,21 @@
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
+
+        <!-- Service Worker Registration untuk PWA Offline-First -->
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                        console.log('Naning POS PWA Service Worker terdaftar.');
+                    }).catch(function(err) {
+                        console.warn('PWA SW gagal:', err);
+                    });
+                });
+            }
+        </script>
     </head>
-    <body class="antialiased flex items-center justify-center">
+    <body class="antialiased flex items-center justify-center w-full h-full">
         @inertia
     </body>
 </html>

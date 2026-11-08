@@ -1215,9 +1215,62 @@ function selectCustomer(cust) {
   showCustomerModal.value = false;
 }
 
+// ================= FULLSCREEN & PWA INSTALL =================
+const isFullscreen = ref(false);
+const deferredInstallPrompt = ref(null);
+const canInstallPwa = ref(false);
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+    isFullscreen.value = true;
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+    isFullscreen.value = false;
+  }
+}
+
+async function triggerPwaInstall() {
+  if (!deferredInstallPrompt.value) return;
+  deferredInstallPrompt.value.prompt();
+  const choice = await deferredInstallPrompt.value.userChoice;
+  if (choice && choice.outcome === 'accepted') {
+    canInstallPwa.value = false;
+  }
+  deferredInstallPrompt.value = null;
+}
+
+function handleFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement;
+}
+
+function handleBeforeInstallPrompt(e) {
+  e.preventDefault();
+  deferredInstallPrompt.value = e;
+  canInstallPwa.value = true;
+}
+
+function handleAppInstalled() {
+  canInstallPwa.value = false;
+  deferredInstallPrompt.value = null;
+}
+
 onMounted(() => {
   updateClock();
   clockTimer = setInterval(updateClock, 1000);
+
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  window.addEventListener('appinstalled', handleAppInstalled);
 
   // Buka kunci AudioContext otomatis saat klik/interaksi pertama pengguna
   const unlockAudioOnce = () => {
@@ -1233,6 +1286,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (clockTimer) clearInterval(clockTimer);
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  window.removeEventListener('appinstalled', handleAppInstalled);
   if (html5QrCode && isCameraActive.value) {
     html5QrCode.stop().catch(() => {});
   }
@@ -1240,10 +1296,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Head title="TPKmart POS - Android Tablet Edition (1097x686)" />
+  <Head title="Naning POS - Layar Penuh Android Tablet" />
 
-  <!-- ROOT CONTAINER: Locked Exactly to 1097 x 686px (Android Tablet Screen) -->
-  <div class="flex flex-row w-[1097px] h-[686px] max-w-[1097px] max-h-[686px] overflow-hidden text-slate-800 bg-white select-none relative font-sans shadow-2xl">
+  <!-- ROOT CONTAINER: Mengisi Seluruh Layar (Fullscreen Edge-to-Edge) -->
+  <div class="flex flex-row w-screen h-screen max-w-full max-h-screen overflow-hidden text-slate-800 bg-white select-none relative font-sans shadow-2xl">
     
     <!-- ================================================================
          PANEL KIRI (65%): KERANJANG BELANJA
@@ -1456,6 +1512,29 @@ onUnmounted(() => {
           <span class="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
             {{ currentTime }}
           </span>
+
+          <!-- Tombol Pasang PWA ke Layar Utama jika didukung browser -->
+          <button 
+            v-if="canInstallPwa"
+            @click="triggerPwaInstall"
+            type="button"
+            title="Pasang Naning POS ke Layar Utama Tablet / Desktop"
+            class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs transition cursor-pointer"
+          >
+            <span>📲</span>
+            <span>Pasang</span>
+          </button>
+
+          <!-- Tombol Mode Layar Penuh (Fullscreen) -->
+          <button 
+            @click="toggleFullscreen"
+            type="button"
+            :title="isFullscreen ? 'Keluar dari Mode Layar Penuh' : 'Masuk ke Mode Layar Penuh (Fullscreen)'"
+            class="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 hover:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1 transition cursor-pointer"
+          >
+            <span>{{ isFullscreen ? '🗗' : '⛶' }}</span>
+            <span class="text-[9px]">{{ isFullscreen ? 'Kecil' : 'Full' }}</span>
+          </button>
         </div>
       </div>
 
