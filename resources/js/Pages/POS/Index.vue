@@ -1978,6 +1978,7 @@ function submitPayDebt() {
 }
 
 // ================= MASTER SETTINGS MODAL (MULTI-TAB) =================
+const showNavMenu = ref(false);
 const showSettingsModal = ref(false);
 const activeSettingsTab = ref('profile'); // 'profile' | 'payment' | 'printer' | 'features' | 'data'
 
@@ -2284,6 +2285,15 @@ onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.addEventListener('appinstalled', handleAppInstalled);
   document.addEventListener('click', handleClickOutsideSearch);
+
+  function handleClickOutsideNavMenu(e) {
+    const container = document.getElementById('pos-nav-menu-container');
+    if (container && !container.contains(e.target)) {
+      showNavMenu.value = false;
+    }
+  }
+  document.addEventListener('click', handleClickOutsideNavMenu);
+
   window.addEventListener('keydown', handleGlobalHardwareScan);
 
   // Buka kunci AudioContext otomatis saat klik/interaksi pertama pengguna
@@ -2304,6 +2314,7 @@ onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   window.removeEventListener('appinstalled', handleAppInstalled);
   document.removeEventListener('click', handleClickOutsideSearch);
+  document.removeEventListener('click', handleClickOutsideNavMenu);
   window.removeEventListener('keydown', handleGlobalHardwareScan);
   if (html5QrCode && isCameraActive.value) {
     html5QrCode.stop().catch(() => {});
@@ -2327,35 +2338,125 @@ onUnmounted(() => {
       
       <!-- Header Keranjang: Logo + Search + Tombol Galeri & Scanner (MODERN POS FLAT) -->
       <div class="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0 flex items-center gap-3">
-        <!-- Logo Toko (Modern Flat Tile) -->
-        <div class="flex items-center gap-2 shrink-0">
-          <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-xs">
-            RM
-          </div>
-          <div class="leading-tight">
-            <div class="text-xs font-black text-slate-900 leading-none uppercase tracking-wide">{{ settingsForm.store_name || 'Rozak Mart' }}</div>
-            <div class="text-[10px] text-slate-500 font-medium mt-0.5">Kasir: <strong class="text-slate-700">Siska A.</strong></div>
-          </div>
-          <!-- Tombol Pengaturan Master Multi-Tab -->
+        <!-- Logo Toko & Tombol Dropdown Menu Navigasi Utama (Square / Toast Style) -->
+        <div id="pos-nav-menu-container" class="relative shrink-0">
           <button 
             type="button" 
-            @click="openSettingsModal" 
-            title="Buka Pengaturan Toko & POS" 
-            class="ml-1 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200 flex items-center justify-center text-xs font-bold transition cursor-pointer shadow-2xs"
+            @click="showNavMenu = !showNavMenu" 
+            title="Buka menu kasir (Pengaturan, Riwayat, Katalog, Pelanggan)" 
+            class="flex items-center gap-2.5 p-1 -ml-1 rounded-xl hover:bg-slate-100 transition cursor-pointer select-none group border border-transparent hover:border-slate-200"
           >
-            ⚙️
+            <!-- Logo Badge RM dengan Panah Dropdown -->
+            <div class="w-9 h-9 rounded-xl bg-blue-600 group-hover:bg-blue-700 text-white font-black text-xs flex items-center justify-center shadow-xs transition shrink-0">
+              RM
+            </div>
+            <div class="text-left leading-tight pr-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-black text-slate-900 uppercase tracking-wide">{{ settingsForm.store_name || 'Rozak Mart' }}</span>
+                <span class="text-[9px] text-slate-400 group-hover:text-blue-600 transition" :class="showNavMenu ? 'rotate-180' : ''">▼</span>
+              </div>
+              <div class="text-[10px] text-slate-500 font-medium mt-0.5">Kasir: <strong class="text-slate-700">Siska A.</strong></div>
+            </div>
           </button>
-          
-          <!-- Tombol Buka Riwayat Transaksi & Laporan Keuangan -->
-          <button 
-            type="button" 
-            @click="openReportsDrawer" 
-            title="Lihat Riwayat Struk & Rekap Keuangan Hari Ini" 
-            class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-blue-200 transition cursor-pointer shadow-2xs ml-0.5"
+
+          <!-- Dropdown Popover Menu (Modern POS Flat) -->
+          <transition 
+            enter-active-class="transition duration-150 ease-out" 
+            enter-from-class="transform -translate-y-2 opacity-0 scale-95" 
+            enter-to-class="transform translate-y-0 opacity-100 scale-100" 
+            leave-active-class="transition duration-100 ease-in" 
+            leave-from-class="transform translate-y-0 opacity-100 scale-100" 
+            leave-to-class="transform -translate-y-2 opacity-0 scale-95"
           >
-            <span>📊</span>
-            <span>Riwayat & Laporan</span>
-          </button>
+            <div 
+              v-if="showNavMenu" 
+              class="absolute left-0 top-full mt-2 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-[60] flex flex-col gap-0.5"
+            >
+              <!-- Info Header Popover -->
+              <div class="px-3 py-2 border-b border-slate-100 mb-1">
+                <div class="text-xs font-black text-slate-900 uppercase tracking-wider">{{ settingsForm.store_name || 'Rozak Mart' }}</div>
+                <div class="text-[10px] text-slate-500 font-medium">Menu Sistem & Navigasi Kasir</div>
+              </div>
+
+              <!-- Item 1: Pengaturan -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; openSettingsModal()" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">⚙️</span>
+                <span>Pengaturan Sistem & Toko</span>
+              </button>
+
+              <!-- Item 2: Riwayat & Laporan -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; openReportsDrawer()" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">📊</span>
+                <span>Riwayat & Rekap Keuangan</span>
+              </button>
+
+              <!-- Item 3: Katalog Barang -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; showGalleryModal = true" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center justify-between transition cursor-pointer"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">📦</span>
+                  <span>Katalog Produk</span>
+                </div>
+                <span class="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">F2</span>
+              </button>
+
+              <!-- Item 4: Pelanggan -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; showCustomerModal = true" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">👥</span>
+                <span>Manajemen Pelanggan</span>
+              </button>
+
+              <!-- Item 5: Antrean Pesanan -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; showHoldModal = true" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center justify-between transition cursor-pointer"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">⏸️</span>
+                  <span>Antrean Pesanan (Hold)</span>
+                </div>
+                <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono font-bold">{{ holdOrdersList.length }}</span>
+              </button>
+
+              <div class="h-px bg-slate-100 my-1"></div>
+
+              <!-- Item 6: Fullscreen Toggle -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; toggleFullscreen()" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-100 font-medium flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs">🖥️</span>
+                <span>{{ isFullscreen ? 'Keluar Layar Penuh' : 'Mode Layar Penuh' }}</span>
+              </button>
+
+              <!-- Item 7: Reload PWA -->
+              <button 
+                type="button" 
+                @click="window.location.reload(true)" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-100 font-medium flex items-center gap-2.5 transition cursor-pointer"
+              >
+                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs">🔄</span>
+                <span>Muat Ulang / Reload</span>
+              </button>
+            </div>
+          </transition>
         </div>
 
         <div class="w-px h-6 bg-slate-200 shrink-0"></div>
