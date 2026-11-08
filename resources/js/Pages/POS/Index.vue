@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { ScannerService } from '@/services/scanner';
@@ -1448,9 +1448,33 @@ function removeExtraUnit(index) {
 }
 
 const editingProductId = ref(null);
+const duplicateProductWarning = ref(null);
+
+// Deteksi instan sesaat setelah inputan barcode terisi (scan kamera / barcode gun / ketik manual)
+watch(() => newProd.value.barcode, (newVal) => {
+  const bc = (newVal || '').trim();
+  if (!bc) {
+    duplicateProductWarning.value = null;
+    return;
+  }
+
+  const existing = localProducts.value.find(p => 
+    p.barcode && 
+    p.barcode.trim().toLowerCase() === bc.toLowerCase() && 
+    p.id !== editingProductId.value
+  );
+
+  if (existing) {
+    duplicateProductWarning.value = existing;
+    playBeepSound('warning');
+  } else {
+    duplicateProductWarning.value = null;
+  }
+});
 
 function openAddProductModal(prefill = '') {
   editingProductId.value = null;
+  duplicateProductWarning.value = null;
   activeNumpadTarget.value = 'base_price';
   newProd.value = {
     name: '',
@@ -1479,6 +1503,7 @@ function openAddProductModal(prefill = '') {
 
 function openEditProductModal(product) {
   editingProductId.value = product.id;
+  duplicateProductWarning.value = null;
   activeNumpadTarget.value = 'base_price';
 
   const baseUnit = (product.units && product.units.find(u => u.is_base)) || 
@@ -1535,6 +1560,20 @@ function saveNewProduct() {
   const barcodeVal = newProd.value.barcode.trim();
   if (!barcodeVal) {
     alert('Barcode produk masih kosong! Silakan gunakan tombol [📷 Scan Barcode] untuk men-scan barcode kemasan barang.');
+    return;
+  }
+
+  // Pengaman Pengecekan Duplikat Barcode
+  const duplicateProd = localProducts.value.find(p => 
+    p.barcode && 
+    p.barcode.trim().toLowerCase() === barcodeVal.toLowerCase() && 
+    p.id !== editingProductId.value
+  );
+
+  if (duplicateProd) {
+    playBeepSound('warning');
+    duplicateProductWarning.value = duplicateProd;
+    alert(`Peringatan: Barcode "${barcodeVal}" sudah terdaftar untuk produk "${duplicateProd.name}". Barcode tidak boleh duplikat!`);
     return;
   }
 
@@ -2835,7 +2874,12 @@ onUnmounted(() => {
                       type="text" 
                       v-model="newProd.barcode" 
                       placeholder="Scan kemasan..."
-                      class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl pl-2.5 pr-7 py-1.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      :class="[
+                        'w-full rounded-xl pl-2.5 pr-7 py-1.5 text-xs font-mono focus:outline-none transition border',
+                        duplicateProductWarning 
+                          ? 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-400 font-bold' 
+                          : 'bg-[#f1f3f4] border-slate-200 text-slate-800 focus:ring-2 focus:ring-emerald-500'
+                      ]"
                     />
                     <button v-if="newProd.barcode" type="button" @click="newProd.barcode = ''" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold" title="Hapus barcode">
                       ✕
@@ -2864,6 +2908,46 @@ onUnmounted(() => {
                   <select v-model="newProd.unit" class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <option v-for="u in availableUnits" :key="u" :value="u">{{ u }}</option>
                   </select>
+                </div>
+              </div>
+
+              <!-- Notifikasi Barcode Duplikat Sesaat Setelah Terisi -->
+              <div 
+                v-if="duplicateProductWarning" 
+                class="p-2.5 bg-rose-50 border-2 border-rose-400 rounded-2xl flex items-start gap-2 text-rose-950 shadow-xs"
+              >
+                <div class="w-7 h-7 rounded-xl bg-rose-200 text-rose-800 flex items-center justify-center text-sm font-bold shrink-0">
+                  ⚠️
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[11px] font-black text-rose-700 flex items-center justify-between">
+                    <span>BARCODE SUDAH TERDAFTAR!</span>
+                    <span class="text-[9px] bg-rose-200 text-rose-900 font-bold px-1.5 py-0.2 rounded">Tidak Boleh Duplikat</span>
+                  </div>
+                  <div class="text-xs font-bold text-slate-900 truncate mt-0.5">
+                    Produk: {{ duplicateProductWarning.name }}
+                  </div>
+                  <div class="text-[10px] text-slate-600 flex items-center gap-2 mt-0.5">
+                    <span>Harga: <strong class="text-emerald-700">Rp {{ (duplicateProductWarning.units?.[0]?.price || duplicateProductWarning.price || 0).toLocaleString('id-ID') }}</strong></span>
+                    <span>•</span>
+                    <span>Kategori: <strong>{{ getProductCategoryName(duplicateProductWarning) }}</strong></span>
+                  </div>
+                  <div class="mt-2 flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      @click="openEditProductModal(duplicateProductWarning)" 
+                      class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-[10px] px-3 py-1 rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer transition"
+                    >
+                      <span>✏️</span> Buka & Edit Produk Tersebut
+                    </button>
+                    <button 
+                      type="button" 
+                      @click="newProd.barcode = ''" 
+                      class="bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-[10px] px-2.5 py-1 rounded-xl cursor-pointer transition"
+                    >
+                      Ganti Barcode
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -3040,9 +3124,16 @@ onUnmounted(() => {
             <button @click="showAddProductModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-full font-bold transition">
               Batal
             </button>
-            <button @click="saveNewProduct" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded-full font-bold shadow-xs transition flex items-center justify-center gap-1">
+            <button 
+              @click="saveNewProduct" 
+              :disabled="!!duplicateProductWarning"
+              :class="duplicateProductWarning 
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs'"
+              class="flex-1 text-xs py-2 rounded-full font-bold transition flex items-center justify-center gap-1"
+            >
               <span>💾</span>
-              <span>{{ editingProductId ? 'Simpan Perubahan' : 'Simpan Produk' }}</span>
+              <span>{{ duplicateProductWarning ? '⚠️ Barcode Duplikat' : (editingProductId ? 'Simpan Perubahan' : 'Simpan Produk') }}</span>
             </button>
           </div>
         </div>
