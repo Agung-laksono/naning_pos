@@ -1,5 +1,5 @@
-// Naning POS - Progressive Web App Service Worker
-const CACHE_NAME = 'naning-pos-cache-v2';
+// Rozak Mart POS - Progressive Web App Service Worker
+const CACHE_NAME = 'rozak-mart-pos-v5';
 const STATIC_ASSETS = [
   '/',
   '/pos',

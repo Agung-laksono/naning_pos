@@ -125,9 +125,19 @@
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                     navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                        console.log('Naning POS PWA Service Worker terdaftar.');
+                        console.log('Rozak Mart PWA Service Worker terdaftar.');
+                        reg.update(); // Paksa periksa pembaruan sw.js
                     }).catch(function(err) {
                         console.warn('PWA SW gagal:', err);
+                    });
+
+                    // Otomatis muat ulang jika Service Worker versi baru sudah aktif
+                    let isRefreshing = false;
+                    navigator.serviceWorker.addEventListener('controllerchange', function() {
+                        if (!isRefreshing) {
+                            isRefreshing = true;
+                            window.location.reload();
+                        }
                     });
                 });
             }
