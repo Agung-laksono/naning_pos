@@ -1912,40 +1912,40 @@ onUnmounted(() => {
 <template>
   <Head title="Rozak Mart - Kasir Pintar Android Tablet" />
 
-  <!-- ROOT CONTAINER: Mengisi Seluruh Layar (Fullscreen Edge-to-Edge) -->
-  <div class="flex flex-row w-screen h-screen max-w-full max-h-screen overflow-hidden text-slate-800 bg-white select-none relative font-sans shadow-2xl">
+  <!-- ROOT CONTAINER: Mengisi Seluruh Layar (Fullscreen Edge-to-Edge - QubePOS Style) -->
+  <div class="flex flex-row w-screen h-screen max-w-full max-h-screen overflow-hidden text-slate-800 bg-white select-none relative font-sans shadow-none">
     
     <!-- ================================================================
-         PANEL KIRI (65%): KERANJANG BELANJA
+         PANEL KIRI (65%): KERANJANG BELANJA (QubePOS FLAT INDUSTRIAL)
          Header: Logo Toko + Search + Galeri + Scanner
-         Body:   List Item Belanja Full Height
-         Footer: Subtotal, Diskon, Grand Total
+         Body:   List Item Belanja Full Height (Clean Grid)
+         Footer: LED-Style POS Grand Total Display
     ================================================================= -->
-    <div class="w-[65%] bg-white flex flex-col border-r border-slate-200 overflow-hidden">
+    <div class="w-[65%] bg-white flex flex-col border-r border-slate-300 overflow-hidden">
       
-      <!-- Header Keranjang: Logo + Search + Tombol Galeri & Scanner -->
-      <div class="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0 flex items-center gap-3">
-        <!-- Logo Toko -->
+      <!-- Header Keranjang: Logo + Search + Tombol Galeri & Scanner (FLAT) -->
+      <div class="bg-white border-b border-slate-300 px-4 py-2.5 shrink-0 flex items-center gap-3">
+        <!-- Logo Toko (Sharp Tile) -->
         <div class="flex items-center gap-2 shrink-0">
-          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-none">
+          <div class="w-8 h-8 rounded-none bg-blue-600 flex items-center justify-center text-white font-black text-xs">
             RM
           </div>
           <div class="leading-tight">
-            <div class="text-xs font-black text-slate-900 leading-none">Rozak Mart</div>
+            <div class="text-xs font-black text-slate-900 leading-none uppercase tracking-wide">Rozak Mart</div>
             <div class="text-[9px] text-slate-500 font-medium">Kasir: <strong class="text-slate-700">Siska A.</strong></div>
           </div>
         </div>
 
-        <div class="w-px h-6 bg-slate-200 shrink-0"></div>
+        <div class="w-px h-6 bg-slate-300 shrink-0"></div>
 
-        <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri & Auto-Suggest Dropdown (FLAT) -->
+        <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri & Auto-Suggest Dropdown (QubePOS FLAT) -->
         <div id="pos-search-container" class="relative flex-1">
-          <!-- Tombol Kamera Scanner Cepat di Sisi Kiri Input (FLAT) -->
+          <!-- Tombol Kamera Scanner Cepat di Sisi Kiri Input -->
           <button 
             @click="triggerBarcodeScanner" 
             type="button"
             title="Buka Scanner Barcode Kamera (Sentuh untuk Memindai)" 
-            class="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white flex items-center justify-center transition cursor-pointer z-10"
+            class="absolute left-1 top-1 bottom-1 w-8 rounded-none bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white flex items-center justify-center transition cursor-pointer z-10"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           </button>
@@ -1960,7 +1960,7 @@ onUnmounted(() => {
             @keydown.enter.prevent="handleSearchSubmit"
             placeholder="Scan barcode atau ketik nama produk..."
             autocomplete="off"
-            class="w-full bg-[#f1f3f4] focus:bg-white text-slate-800 text-xs font-medium rounded-lg pl-11 pr-8 py-2 focus:outline-none transition border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder-slate-400"
+            class="w-full bg-[#f1f3f4] focus:bg-white text-slate-800 text-xs font-semibold rounded-none pl-11 pr-8 py-2 focus:outline-none transition border-2 border-slate-300 focus:border-blue-600 placeholder-slate-400"
           />
 
           <!-- Action di Bagian Kanan Form Search: Clear (✕) -->
@@ -1968,25 +1968,25 @@ onUnmounted(() => {
             <button 
               @click="clearSearchInput" 
               type="button"
-              class="w-5 h-5 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition cursor-pointer"
+              class="w-5 h-5 rounded-none bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition cursor-pointer"
             >
               ✕
             </button>
           </div>
 
-          <!-- Dropdown Hasil Pencarian Live & Auto-Suggest (FLAT) -->
+          <!-- Dropdown Hasil Pencarian Live & Auto-Suggest (QubePOS FLAT) -->
           <div 
             v-if="isSearchDropdownOpen && (searchSuggestions.length > 0 || searchUnregisteredQuery)" 
-            class="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-300 overflow-hidden z-50 flex flex-col divide-y divide-slate-100"
+            class="absolute left-0 right-0 top-full mt-0.5 bg-white rounded-none shadow-none border-2 border-slate-400 overflow-hidden z-50 flex flex-col divide-y divide-slate-200"
           >
             <!-- Header Ringkas Info Hasil -->
-            <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <div class="px-3 py-1.5 bg-slate-100 flex items-center justify-between text-[11px] text-slate-700 font-bold uppercase tracking-wider">
               <span>Hasil Pencarian ({{ searchSuggestions.length }})</span>
-              <span class="text-[10px] text-slate-400">Pilih atau tekan Enter</span>
+              <span class="text-[10px] text-slate-500 font-normal">Pilih item atau tekan Enter</span>
             </div>
 
             <!-- List Hasil Cocok -->
-            <div v-if="searchSuggestions.length > 0" class="overflow-y-auto max-h-[300px] divide-y divide-slate-50">
+            <div v-if="searchSuggestions.length > 0" class="overflow-y-auto max-h-[300px] divide-y divide-slate-100">
               <div 
                 v-for="(item, idx) in searchSuggestions" 
                 :key="(item.id || item.barcode || '') + '-' + idx"
@@ -1994,26 +1994,29 @@ onUnmounted(() => {
                 @mouseenter="highlightedIndex = idx"
                 :class="[
                   'px-3 py-2 flex items-center justify-between cursor-pointer transition select-none',
-                  highlightedIndex === idx ? 'bg-blue-50 text-blue-900' : 'hover:bg-slate-50'
+                  highlightedIndex === idx ? 'bg-blue-600 text-white' : 'hover:bg-slate-50 text-slate-800'
                 ]"
               >
                 <div class="flex items-center gap-2.5 min-w-0 pr-2">
-                  <span class="text-xl p-1 bg-slate-100 rounded-xl shrink-0">{{ item.icon || '📦' }}</span>
+                  <span class="text-lg p-1 bg-slate-100 rounded-none shrink-0 border border-slate-200 text-slate-900">{{ item.icon || '📦' }}</span>
                   <div class="truncate">
-                    <div class="text-xs font-bold text-slate-900 truncate">{{ item.name }}</div>
-                    <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <div class="text-xs font-bold truncate" :class="highlightedIndex === idx ? 'text-white' : 'text-slate-900'">{{ item.name }}</div>
+                    <div class="flex items-center gap-2 text-[10px] font-mono" :class="highlightedIndex === idx ? 'text-blue-100' : 'text-slate-400'">
                       <span v-if="item.barcode">#{{ item.barcode }}</span>
-                      <span v-if="item.barcode" class="text-slate-300">•</span>
+                      <span v-if="item.barcode">•</span>
                       <span>{{ getProductCategoryName(item) }}</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="text-right shrink-0">
-                  <div class="text-xs font-mono font-black text-slate-900">
+                  <div class="text-xs font-mono font-black" :class="highlightedIndex === idx ? 'text-white' : 'text-slate-900'">
                     Rp {{ (item.units && item.units[0] ? item.units[0].price : (item.price || 0)).toLocaleString('id-ID') }}
                   </div>
-                  <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded font-bold">
+                  <span 
+                    :class="highlightedIndex === idx ? 'bg-white text-blue-700' : 'bg-blue-100 text-blue-800'"
+                    class="text-[9px] px-1.5 py-0.5 rounded-none font-bold uppercase"
+                  >
                     {{ item.units && item.units[0] ? item.units[0].name : (item.unit || 'Pcs') }}
                   </span>
                 </div>
@@ -2021,7 +2024,7 @@ onUnmounted(() => {
             </div>
 
             <!-- State Jika Tidak Ditemukan / Tombol Daftarkan Barang Baru -->
-            <div v-if="searchSuggestions.length === 0 && searchUnregisteredQuery" class="p-3 text-center bg-amber-50/50">
+            <div v-if="searchSuggestions.length === 0 && searchUnregisteredQuery" class="p-3 text-center bg-amber-50">
               <div class="text-xs font-bold text-slate-800 mb-0.5">
                 Produk "{{ searchUnregisteredQuery }}" Belum Terdaftar
               </div>
@@ -2031,7 +2034,7 @@ onUnmounted(() => {
               <button 
                 @click="quickRegisterFromSearch(searchUnregisteredQuery)"
                 type="button"
-                class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs py-2 px-3 rounded-none flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <span>➕</span>
                 <span>Daftarkan Produk Baru</span>
@@ -2040,30 +2043,30 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Tombol Galeri Produk (FLAT) -->
-        <button @click="showGalleryModal = true" class="shrink-0 flex items-center gap-1.5 bg-[#f1f3f4] hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-lg border border-slate-300 transition cursor-pointer">
+        <!-- Tombol Galeri Produk (Tile QubePOS) -->
+        <button @click="showGalleryModal = true" class="shrink-0 flex items-center gap-1.5 bg-[#f1f3f4] hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-none border border-slate-300 transition cursor-pointer uppercase">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
           Galeri
         </button>
 
-        <!-- Badges & Counter Item (FLAT) -->
+        <!-- Badges & Counter Item (QubePOS) -->
         <div class="shrink-0 flex items-center">
-          <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-blue-200">
+          <span class="bg-blue-600 text-white text-[10px] font-black px-2.5 py-1.5 rounded-none uppercase tracking-wider">
             {{ cart.length }} Item
           </span>
         </div>
       </div>
 
-      <!-- Daftar Belanjaan (FLAT List - Full Height) -->
-      <div v-if="cart.length > 0" class="flex-1 overflow-y-auto divide-y divide-slate-100 px-2">
+      <!-- Daftar Belanjaan (QubePOS Grid Table - Full Height) -->
+      <div v-if="cart.length > 0" class="flex-1 overflow-y-auto divide-y divide-slate-200">
         <div 
           v-for="(item, index) in cart" 
           :key="item.barcode + '-' + item.unit" 
-          class="flex items-center justify-between py-2 px-2 hover:bg-slate-50 transition rounded-lg"
+          class="flex items-center justify-between py-2.5 px-3 hover:bg-blue-50/40 transition rounded-none bg-white"
         >
           <!-- Info Nama & Satuan -->
           <div class="flex items-center gap-2.5 flex-1 min-w-0 pr-2 cursor-pointer" @click="openItemEdit(index)">
-            <span class="text-xl p-1 bg-white rounded-lg border border-slate-200 shrink-0">{{ item.icon || '📦' }}</span>
+            <span class="text-lg p-1.5 bg-slate-100 rounded-none border border-slate-200 shrink-0">{{ item.icon || '📦' }}</span>
             <div class="truncate">
               <div class="text-xs font-bold text-slate-900 truncate leading-snug">{{ item.name }}</div>
               <div class="flex items-center gap-1.5 mt-0.5">
@@ -2072,105 +2075,108 @@ onUnmounted(() => {
                   v-if="item.units && item.units.length > 1"
                   type="button"
                   @click.stop="cycleItemUnit(index)"
-                  class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition"
+                  class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[10px] font-bold px-2 py-0.5 rounded-none flex items-center gap-1 transition"
                   title="Klik untuk ganti satuan (Multi-Satuan)"
                 >
                   <span>{{ item.unit }}</span>
                   <span class="text-[8px] opacity-90">🔄</span>
                 </button>
-                <span v-else class="bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
+                <span v-else class="bg-slate-100 text-slate-700 border border-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded-none">
                   {{ item.unit }}
                 </span>
-                <span class="text-[10px] text-slate-400 font-mono">Rp {{ item.price.toLocaleString('id-ID') }}</span>
+                <span class="text-[10px] text-slate-500 font-mono">Rp {{ item.price.toLocaleString('id-ID') }}</span>
                 <span v-if="item.discount > 0" class="text-[10px] text-amber-600 font-mono font-bold">(-{{ item.discount.toLocaleString('id-ID') }})</span>
               </div>
             </div>
           </div>
 
-          <!-- Qty Adjuster & Subtotal Item (FLAT) -->
+          <!-- Qty Adjuster & Subtotal Item (QubePOS) -->
           <div class="flex items-center gap-4 shrink-0">
-            <!-- Counter Touch (FLAT) -->
-            <div class="flex items-center bg-[#f1f3f4] rounded-lg p-0.5 border border-slate-300">
-              <button @click.stop="updateQty(index, -1)" class="w-6 h-6 rounded-md bg-white text-slate-700 hover:bg-slate-200 flex items-center justify-center font-bold text-xs border border-slate-200 transition">
+            <!-- Counter Touch (Square Industrial) -->
+            <div class="flex items-center bg-white rounded-none border border-slate-400">
+              <button @click.stop="updateQty(index, -1)" class="w-7 h-7 rounded-none bg-[#f1f3f4] text-slate-800 hover:bg-slate-300 active:bg-slate-400 flex items-center justify-center font-black text-sm border-r border-slate-400 transition cursor-pointer">
                 -
               </button>
-              <span @click.stop="openItemEdit(index)" class="w-7 text-center font-mono font-bold text-xs text-slate-800 cursor-pointer">
+              <span @click.stop="openItemEdit(index)" class="w-8 text-center font-mono font-black text-xs text-slate-900 cursor-pointer">
                 {{ item.qty }}
               </span>
-              <button @click.stop="updateQty(index, 1)" class="w-6 h-6 rounded-md bg-white text-slate-700 hover:bg-slate-200 flex items-center justify-center font-bold text-xs border border-slate-200 transition">
+              <button @click.stop="updateQty(index, 1)" class="w-7 h-7 rounded-none bg-[#f1f3f4] text-slate-800 hover:bg-slate-300 active:bg-slate-400 flex items-center justify-center font-black text-sm border-l border-slate-400 transition cursor-pointer">
                 +
               </button>
             </div>
 
             <!-- Total Per Baris -->
-            <div class="text-right w-20">
+            <div class="text-right w-24">
               <div class="text-xs font-mono font-black text-slate-900">
                 Rp {{ ((item.price * item.qty) - (item.discount || 0)).toLocaleString('id-ID') }}
               </div>
             </div>
 
             <!-- Tombol Hapus -->
-            <button @click.stop="removeCartItem(index)" class="text-slate-300 hover:text-rose-500 text-xs p-1">
+            <button @click.stop="removeCartItem(index)" class="text-slate-400 hover:text-rose-600 text-sm p-1.5 cursor-pointer font-bold">
               ✕
             </button>
           </div>
         </div>
       </div>
 
-      <!-- State Keranjang Kosong (FLAT) -->
+      <!-- State Keranjang Kosong (QubePOS FLAT) -->
       <div v-else class="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
-        <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-2xl mb-2">🛒</div>
-        <p class="text-xs font-bold text-slate-700">Keranjang Belanja Masih Kosong</p>
-        <p class="text-[11px] text-slate-400 mt-0.5 mb-3">Scan barcode produk, pilih dari galeri atau daftarkan produk baru</p>
+        <div class="w-16 h-16 rounded-none bg-blue-50 text-blue-600 border-2 border-blue-200 flex items-center justify-center text-3xl mb-2">🛒</div>
+        <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Keranjang Belanja Kosong</p>
+        <p class="text-[11px] text-slate-500 mt-0.5 mb-3">Scan barcode produk, buka galeri atau tambahkan barang baru</p>
         <div class="flex items-center gap-2">
           <!-- Tombol Utama: Scan Barcode Kamera -->
           <button 
             @click="triggerBarcodeScanner" 
             type="button"
-            class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+            class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs px-4 py-2.5 rounded-none flex items-center gap-1.5 transition cursor-pointer uppercase tracking-wider"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span>Scan Barcode</span>
           </button>
-          <button @click="showGalleryModal = true" type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 border border-slate-300 transition cursor-pointer">
+          <button @click="showGalleryModal = true" type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-none flex items-center gap-1.5 border border-slate-300 transition cursor-pointer uppercase tracking-wider">
             <span>📂</span> Buka Galeri
           </button>
-          <button @click="openAddProductModal()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer">
+          <button @click="openAddProductModal()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-none flex items-center gap-1.5 transition cursor-pointer uppercase tracking-wider">
             <span>➕</span> Tambah Barang
           </button>
         </div>
       </div>
 
-      <!-- Footer Keranjang: Subtotal & Grand Total + Diskon Nota (FLAT) -->
-      <div class="border-t border-slate-200 bg-[#f8f9fa] shrink-0">
+      <!-- Footer Keranjang: Subtotal & Grand Total + Diskon Nota (QubePOS High-Contrast Display) -->
+      <div class="border-t-2 border-slate-300 bg-slate-900 text-white shrink-0">
         <!-- Baris atas: info subtotal + tombol diskon nota -->
-        <div class="px-4 pt-2 pb-1 flex items-center gap-3 text-xs text-slate-500 font-medium">
-          <span>Subtotal: <strong class="text-slate-800 font-mono">Rp {{ subtotal.toLocaleString('id-ID') }}</strong></span>
-          <span class="w-px h-4 bg-slate-300"></span>
-          <span>Diskon Item: <strong class="text-amber-700 font-mono">Rp {{ itemDiscountTotal.toLocaleString('id-ID') }}</strong></span>
-          <span class="w-px h-4 bg-slate-300"></span>
-          <!-- Tombol Diskon Nota langsung di sini -->
-          <button 
-            @click="openGlobalDiscountModal"
-            class="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[11px] px-2.5 py-0.5 rounded-md transition"
-          >
-            🏷️ Diskon Nota: <strong class="font-mono text-amber-700">Rp {{ globalDiscount.toLocaleString('id-ID') }}</strong>
-          </button>
-          <!-- Badge catatan aktif + hapus -->
-          <div v-if="globalDiscount > 0" class="flex items-center gap-1.5 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md text-[10px] text-amber-900">
-            <span class="italic">{{ globalDiscountNote || 'Diskon' }}</span>
-            <button @click="removeGlobalDiscount" class="font-black text-amber-900 leading-none">✕</button>
+        <div class="px-4 py-1.5 flex items-center justify-between text-xs border-b border-slate-800">
+          <div class="flex items-center gap-3 text-slate-300">
+            <span>Subtotal: <strong class="text-white font-mono">Rp {{ subtotal.toLocaleString('id-ID') }}</strong></span>
+            <span class="w-px h-3 bg-slate-700"></span>
+            <span>Diskon Item: <strong class="text-amber-400 font-mono">Rp {{ itemDiscountTotal.toLocaleString('id-ID') }}</strong></span>
+          </div>
+          <!-- Tombol Diskon Nota -->
+          <div class="flex items-center gap-2">
+            <button 
+              @click="openGlobalDiscountModal"
+              class="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-bold text-[11px] px-2.5 py-1 rounded-none transition cursor-pointer uppercase"
+            >
+              🏷️ Diskon Nota: <strong class="font-mono">Rp {{ globalDiscount.toLocaleString('id-ID') }}</strong>
+            </button>
+            <div v-if="globalDiscount > 0" class="flex items-center gap-1.5 bg-amber-400 text-slate-950 px-2 py-0.5 rounded-none text-[10px] font-bold">
+              <span class="italic">{{ globalDiscountNote || 'Diskon' }}</span>
+              <button @click="removeGlobalDiscount" class="font-black text-slate-950 leading-none">✕</button>
+            </div>
           </div>
         </div>
-        <!-- Baris bawah: Grand Total -->
-        <div class="px-4 pb-2.5 flex items-center justify-between">
-          <div class="text-[10px] text-slate-400 font-medium">Total tagihan yang harus dibayar</div>
-          <div class="flex items-center gap-2 shrink-0">
-            <div class="text-right leading-tight">
-              <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">GRAND TOTAL</div>
-            </div>
-            <span class="text-emerald-600 font-black text-2xl font-mono tracking-tight">
-              Rp {{ grandTotal.toLocaleString('id-ID') }}
+        <!-- Baris bawah: Grand Total Display (QubePOS POS Screen) -->
+        <div class="px-4 py-2.5 flex items-center justify-between bg-black">
+          <div>
+            <div class="text-[10px] font-black text-emerald-400 uppercase tracking-widest font-mono">TOTAL TAGIHAN</div>
+            <div class="text-[9px] text-slate-400 font-medium">{{ cart.length }} jenis barang ({{ totalQty }} pcs)</div>
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span class="text-sm font-bold text-emerald-500 font-mono">Rp</span>
+            <span class="text-emerald-400 font-black text-3xl font-mono tracking-tight">
+              {{ grandTotal.toLocaleString('id-ID') }}
             </span>
           </div>
         </div>
@@ -2178,32 +2184,32 @@ onUnmounted(() => {
     </div>
 
     <!-- ================================================================
-         PANEL KANAN (35%): KASIR CHECKOUT
+         PANEL KANAN (35%): KASIR CHECKOUT (QubePOS INDUSTRIAL TILES)
          Header: Identitas Kasir + Jam
          Body:   Pelanggan, Total Belanjaan
-         Footer: Tombol Bayar (Tunai, QRIS, Kasbon)
+         Footer: Tombol Bayar (Tiles Tunai, QRIS, Kasbon)
     ================================================================= -->
-    <div class="w-[35%] bg-white flex flex-col border-l border-slate-200 overflow-hidden">
+    <div class="w-[35%] bg-white flex flex-col border-l border-slate-300 overflow-hidden">
       
-      <!-- Header Panel Kanan: Kasir Info, Antrean & Jam (FLAT) -->
-      <div class="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0 flex items-center justify-between">
+      <!-- Header Panel Kanan: Kasir Info, Antrean & Jam (QubePOS) -->
+      <div class="bg-white border-b border-slate-300 px-4 py-2.5 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">S</div>
+          <div class="w-7 h-7 rounded-none bg-indigo-600 text-white font-black text-xs flex items-center justify-center">S</div>
           <div class="leading-tight">
-            <div class="text-xs font-bold text-slate-900 leading-none">Siska Anggraeni</div>
+            <div class="text-xs font-black text-slate-900 leading-none uppercase tracking-wide">Siska Anggraeni</div>
             <div class="text-[9px] text-slate-500">Shift Pagi · Kasir Aktif</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <!-- Tombol Antrean di Header (FLAT) -->
-          <button @click="showHoldModal = true" class="relative flex items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+          <!-- Tombol Antrean di Header (QubePOS) -->
+          <button @click="showHoldModal = true" class="relative flex items-center gap-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-none transition cursor-pointer uppercase">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
             Antrean
-            <span class="bg-blue-600 text-white text-[9px] font-black rounded-md px-1 h-4 flex items-center justify-center">
+            <span class="bg-amber-600 text-white text-[9px] font-black rounded-none px-1 h-4 flex items-center justify-center">
               {{ holdOrdersList.length }}
             </span>
           </button>
-          <span class="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+          <span class="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-none border border-slate-300">
             {{ currentTime }}
           </span>
         </div>
@@ -2211,63 +2217,64 @@ onUnmounted(() => {
 
       <!-- ═══ MODE NORMAL (DEFAULT) ═══ -->
       <template v-if="rightMode === 'normal'">
-        <!-- Body Panel Kanan: Pelanggan + Info Total (FLAT) -->
-        <div class="flex-1 overflow-y-auto flex flex-col gap-3 p-3">
-          <!-- Kartu Pelanggan Aktif (FLAT) -->
-          <div class="bg-[#f8f9fa] rounded-lg p-2.5 border border-slate-200 flex items-center justify-between">
+        <!-- Body Panel Kanan: Pelanggan + Info Total (QubePOS) -->
+        <div class="flex-1 overflow-y-auto flex flex-col gap-2.5 p-3">
+          <!-- Kartu Pelanggan Aktif (QubePOS Tile) -->
+          <div class="bg-[#f8f9fa] rounded-none p-2.5 border-2 border-slate-300 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">👤</div>
+              <div class="w-8 h-8 rounded-none bg-blue-600 text-white flex items-center justify-center font-bold text-xs">👤</div>
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-slate-900 leading-tight">{{ selectedCustomer?.name || 'Pelanggan Umum' }}</span>
-                <span class="text-[10px] text-slate-500">{{ selectedCustomer?.id === 1 ? 'Non-Member / Cash' : `Member (${selectedCustomer?.phone || '-'})` }}</span>
+                <span class="text-xs font-black text-slate-900 leading-tight uppercase tracking-wide">{{ selectedCustomer?.name || 'Pelanggan Umum' }}</span>
+                <span class="text-[10px] text-slate-500 font-medium">{{ selectedCustomer?.id === 1 ? 'Non-Member / Cash' : `Member (${selectedCustomer?.phone || '-'})` }}</span>
               </div>
             </div>
-            <button @click="showCustomerModal = true" class="bg-white border border-slate-300 hover:bg-slate-100 text-blue-700 text-[11px] font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
+            <button @click="showCustomerModal = true" class="bg-white border border-slate-300 hover:bg-slate-100 text-blue-700 text-[11px] font-black px-3 py-1.5 rounded-none transition cursor-pointer uppercase">
               Pilih
             </button>
           </div>
 
-          <!-- Total Qty Info (FLAT) -->
-          <div class="bg-[#f8f9fa] rounded-lg px-3 py-2 border border-slate-200 flex justify-between items-center">
-            <span class="text-xs text-slate-500">Total Belanjaan</span>
-            <span class="text-xs font-bold text-slate-800 font-mono">{{ totalQty }} pcs</span>
+          <!-- Total Qty Info (QubePOS Bar) -->
+          <div class="bg-[#f8f9fa] rounded-none px-3 py-2 border border-slate-300 flex justify-between items-center">
+            <span class="text-xs text-slate-600 font-bold uppercase tracking-wide">Total Belanjaan</span>
+            <span class="text-xs font-black text-slate-900 font-mono">{{ totalQty }} pcs</span>
           </div>
         </div>
 
-        <!-- Footer Panel Kanan: Tombol Pembayaran (FLAT) -->
-        <div class="border-t border-slate-200 shrink-0">
-          <!-- Aksi Sekunder: Hold & Batalkan (FLAT) -->
+        <!-- Footer Panel Kanan: Tombol Pembayaran (QubePOS SOLID TILES) -->
+        <div class="border-t-2 border-slate-300 shrink-0 bg-slate-50">
+          <!-- Aksi Sekunder: Hold & Batalkan (QubePOS Tiles) -->
           <div class="px-3 pt-2.5 pb-1.5 grid grid-cols-2 gap-2">
-            <button @click="holdCurrentTransaction" class="bg-[#f1f3f4] hover:bg-slate-200 text-slate-700 text-[11px] font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 border border-slate-300 transition cursor-pointer">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+            <button @click="holdCurrentTransaction" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-[11px] font-black py-2.5 px-3 rounded-none flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider border-b-2 border-amber-700">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="0"/><rect x="14" y="4" width="4" height="16" rx="0"/></svg>
               Hold Order
             </button>
-            <button @click="clearCart" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 border border-rose-200 transition cursor-pointer">
+            <button @click="clearCart" class="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[11px] font-black py-2.5 px-3 rounded-none flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider border-b-2 border-rose-800">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               Batalkan
             </button>
           </div>
-          <!-- Tombol Bayar Utama (FLAT) -->
-          <div class="px-3 pb-3 flex flex-col gap-2">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Metode Pembayaran</span>
 
-            <!-- Bayar Tunai (FLAT) -->
-            <button @click="openCashInline" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black py-3.5 px-4 rounded-lg flex items-center justify-between text-xs tracking-wide transition cursor-pointer">
+          <!-- Tombol Bayar Utama (QubePOS Industrial Tiles) -->
+          <div class="px-3 pb-3 flex flex-col gap-2">
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Metode Pembayaran</span>
+
+            <!-- Bayar Tunai (QubePOS Big Emerald Tile) -->
+            <button @click="openCashInline" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-none flex items-center justify-between text-xs tracking-wider transition cursor-pointer border-b-3 border-emerald-800 uppercase">
               <span class="flex items-center gap-2 text-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 BAYAR TUNAI (CASH)
               </span>
-              <span class="bg-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold font-mono">UANG PAS</span>
+              <span class="bg-emerald-800 px-2.5 py-1 rounded-none text-[10px] font-black font-mono tracking-widest">UANG PAS</span>
             </button>
 
             <div class="grid grid-cols-2 gap-2">
-              <!-- QRIS (FLAT) -->
-              <button @click="payQris" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 px-3 rounded-lg flex items-center justify-center gap-1.5 text-xs transition cursor-pointer">
+              <!-- QRIS (QubePOS Cobalt Blue Tile) -->
+              <button @click="payQris" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-black py-3 px-3 rounded-none flex items-center justify-center gap-1.5 text-xs transition cursor-pointer border-b-3 border-blue-800 uppercase tracking-wider">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                 QRIS / Transfer
               </button>
-              <!-- Kasbon (FLAT) -->
-              <button @click="payKasbon" class="bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold py-3 px-3 rounded-lg flex items-center justify-center gap-1.5 text-xs transition cursor-pointer">
+              <!-- Kasbon (QubePOS Amber Tile) -->
+              <button @click="payKasbon" class="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-black py-3 px-3 rounded-none flex items-center justify-center gap-1.5 text-xs transition cursor-pointer border-b-3 border-amber-800 uppercase tracking-wider">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Kasbon Toko
               </button>
@@ -2276,32 +2283,32 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <!-- ═══ MODE TUNAI INLINE (MENGGANTIKAN BODY + FOOTER SAAT BAYAR TUNAI DITEKAN) ═══ -->
+      <!-- ═══ MODE TUNAI INLINE (QubePOS CASH CALCULATOR) ═══ -->
       <template v-else-if="rightMode === 'cash'">
-        <div class="flex-1 flex flex-col overflow-hidden">
-          <!-- Sub-header mode tunai (FLAT) -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+          <!-- Sub-header mode tunai (QubePOS) -->
           <div class="bg-emerald-600 px-4 py-2.5 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2 text-white">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-              <span class="font-black text-sm tracking-wide">BAYAR TUNAI</span>
+              <span class="font-black text-sm tracking-wider uppercase">BAYAR TUNAI (CASH)</span>
             </div>
-            <button @click="closeCashInline" class="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition cursor-pointer">
+            <button @click="closeCashInline" class="bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-black px-3 py-1.5 rounded-none flex items-center gap-1 transition cursor-pointer uppercase">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
               Kembali
             </button>
           </div>
 
-          <!-- Total + Input uang (FLAT) -->
+          <!-- Total + Input uang (QubePOS) -->
           <div class="px-3 pt-3 pb-2 flex flex-col gap-2 shrink-0">
             <!-- Total Tagihan -->
-            <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex justify-between items-center">
-              <span class="text-xs font-bold text-emerald-800">Total Tagihan</span>
-              <span class="font-mono font-black text-emerald-700 text-lg">Rp {{ grandTotal.toLocaleString('id-ID') }}</span>
+            <div class="bg-emerald-50 border-2 border-emerald-500 rounded-none px-3 py-2 flex justify-between items-center">
+              <span class="text-xs font-black text-emerald-900 uppercase">Total Tagihan</span>
+              <span class="font-mono font-black text-emerald-700 text-xl">Rp {{ grandTotal.toLocaleString('id-ID') }}</span>
             </div>
             <!-- Input uang diterima -->
             <div>
-              <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Uang Diterima</label>
-              <div class="bg-[#f1f3f4] border border-slate-300 focus-within:border-emerald-500 rounded-lg px-3 py-2 transition">
+              <label class="text-[10px] text-slate-500 font-black uppercase tracking-wider block mb-1">Uang Diterima (Rp)</label>
+              <div class="bg-white border-2 border-slate-400 focus-within:border-emerald-600 rounded-none px-3 py-2 transition">
                 <input 
                   type="text" 
                   :value="inlineCashGiven" 
@@ -2312,43 +2319,43 @@ onUnmounted(() => {
               </div>
             </div>
             <!-- Kembalian -->
-            <div class="bg-[#f8f9fa] border border-slate-200 rounded-lg px-3 py-2 flex justify-between items-center">
-              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Kembalian</span>
+            <div class="bg-[#f8f9fa] border-2 border-slate-300 rounded-none px-3 py-2 flex justify-between items-center">
+              <span class="text-xs font-black text-slate-700 uppercase tracking-wide">Kembalian</span>
               <span class="font-mono font-black text-xl text-amber-600">Rp {{ inlineCashChange.toLocaleString('id-ID') }}</span>
             </div>
           </div>
 
-          <!-- Chip pecahan uang (FLAT) -->
+          <!-- Chip pecahan uang (QubePOS Tiles) -->
           <div class="px-3 pb-2 shrink-0">
             <div class="grid grid-cols-4 gap-1 font-mono text-[10px]">
-              <button @click="inlineCashShortcut('exact')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-1.5 rounded-lg transition cursor-pointer">Pas</button>
-              <button @click="inlineCashShortcut(2000)"   class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+2rb</button>
-              <button @click="inlineCashShortcut(5000)"   class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+5rb</button>
-              <button @click="inlineCashShortcut(10000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+10rb</button>
-              <button @click="inlineCashShortcut(20000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+20rb</button>
-              <button @click="inlineCashShortcut(50000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+50rb</button>
-              <button @click="inlineCashShortcut(100000)" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+100rb</button>
-              <button @click="inlineCashShortcut(200000)" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold py-1.5 rounded-lg transition cursor-pointer">+200rb</button>
+              <button @click="inlineCashShortcut('exact')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-none transition cursor-pointer uppercase">Uang Pas</button>
+              <button @click="inlineCashShortcut(2000)"   class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+2rb</button>
+              <button @click="inlineCashShortcut(5000)"   class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+5rb</button>
+              <button @click="inlineCashShortcut(10000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+10rb</button>
+              <button @click="inlineCashShortcut(20000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+20rb</button>
+              <button @click="inlineCashShortcut(50000)"  class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+50rb</button>
+              <button @click="inlineCashShortcut(100000)" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+100rb</button>
+              <button @click="inlineCashShortcut(200000)" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-black py-2 rounded-none transition cursor-pointer">+200rb</button>
             </div>
           </div>
 
-          <!-- Numpad (FLAT) -->
+          <!-- Numpad Industrial Grid (QubePOS) -->
           <div class="px-3 pb-2 grid grid-cols-3 gap-1.5 font-mono flex-1">
-            <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="inlineCashNumpad(n)" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 rounded-lg text-lg font-black text-slate-800 transition cursor-pointer">
+            <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="inlineCashNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 border border-slate-300 rounded-none text-xl font-black text-slate-900 transition cursor-pointer">
               {{ n }}
             </button>
-            <button @click="inlineCashNumpad('C')"   class="bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-sm font-black transition cursor-pointer">C</button>
-            <button @click="inlineCashNumpad('0')"   class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 rounded-lg text-lg font-black text-slate-800 transition cursor-pointer">0</button>
-            <button @click="inlineCashNumpad('000')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 rounded-lg text-sm font-black text-slate-700 transition cursor-pointer">000</button>
+            <button @click="inlineCashNumpad('C')"   class="bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 rounded-none text-base font-black transition cursor-pointer">C</button>
+            <button @click="inlineCashNumpad('0')"   class="bg-white hover:bg-slate-200 active:bg-slate-300 border border-slate-300 rounded-none text-xl font-black text-slate-900 transition cursor-pointer">0</button>
+            <button @click="inlineCashNumpad('000')" class="bg-white hover:bg-slate-200 active:bg-slate-300 border border-slate-300 rounded-none text-sm font-black text-slate-700 transition cursor-pointer">000</button>
           </div>
 
-          <!-- Tombol Konfirmasi Pembayaran (Dual Options - FLAT) -->
+          <!-- Tombol Konfirmasi Pembayaran (QubePOS Dual Tiles) -->
           <div class="px-3 pb-3 shrink-0 grid grid-cols-2 gap-2">
-            <button @click="confirmInlineCash(false)" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black py-3 px-2 text-xs flex items-center justify-center gap-1.5 transition rounded-lg cursor-pointer">
+            <button @click="confirmInlineCash(false)" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black py-3.5 px-2 text-xs flex items-center justify-center gap-1.5 transition rounded-none cursor-pointer border-b-3 border-emerald-800 uppercase tracking-wider">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
               SELESAI (CEPAT)
             </button>
-            <button @click="confirmInlineCash(true)" class="bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-black py-3 px-2 text-xs flex items-center justify-center gap-1.5 transition rounded-lg cursor-pointer">
+            <button @click="confirmInlineCash(true)" class="bg-emerald-800 hover:bg-emerald-900 active:bg-black text-white font-black py-3.5 px-2 text-xs flex items-center justify-center gap-1.5 transition rounded-none cursor-pointer border-b-3 border-emerald-950 uppercase tracking-wider">
               <span>🖨️</span>
               SELESAI & STRUK
             </button>
@@ -2362,56 +2369,56 @@ onUnmounted(() => {
          ANDROID SIDE SHEETS & MODALS (PERSIS SEPERTI MOCKUP)
     ================================================================= -->
 
-    <!-- 1. ANDROID SIDE SHEET 1: GALERI PRODUK (DOCK DI PANEL KIRI 65%) -->
+    <!-- 1. ANDROID SIDE SHEET 1: GALERI PRODUK (QubePOS DOCK DI PANEL KIRI 65%) -->
     <div v-if="showGalleryModal" class="fixed inset-0 z-50 flex items-stretch justify-start">
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-2xs" @click="showGalleryModal = false"></div>
-      <div class="relative w-[65%] h-full bg-white border-r border-slate-200 shadow-2xl flex flex-col overflow-hidden z-10">
-        <!-- Header Galeri Produk (FLAT) -->
-        <div class="bg-white border-b border-slate-200 px-4 py-2.5 flex justify-between items-center shrink-0 gap-3">
+      <div class="absolute inset-0 bg-black/40" @click="showGalleryModal = false"></div>
+      <div class="relative w-[65%] h-full bg-white border-r-2 border-slate-300 shadow-none flex flex-col overflow-hidden z-10">
+        <!-- Header Galeri Produk (QubePOS) -->
+        <div class="bg-white border-b-2 border-slate-300 px-4 py-2.5 flex justify-between items-center shrink-0 gap-3">
           <div class="flex items-center gap-2.5 shrink-0">
-            <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+            <div class="w-8 h-8 rounded-none bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
               📂
             </div>
             <div>
-              <h3 class="font-black text-xs text-slate-900 leading-tight">Katalog Produk Toko</h3>
+              <h3 class="font-black text-xs text-slate-900 leading-tight uppercase tracking-wide">Katalog Produk Toko</h3>
               <p class="text-[10px] text-slate-500">Sentuh produk untuk menambah ke keranjang</p>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-1 justify-end max-w-md">
-            <!-- Search Input di Samping Tambah Barang (FLAT) -->
+            <!-- Search Input di Samping Tambah Barang (QubePOS) -->
             <div class="relative w-56">
               <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">🔍</span>
               <input 
                 type="text" 
                 v-model="gallerySearchQuery" 
                 placeholder="Cari produk / barcode..." 
-                class="w-full bg-[#f8f9fa] hover:bg-white focus:bg-white border border-slate-300 focus:border-blue-500 rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition font-medium"
+                class="w-full bg-[#f8f9fa] hover:bg-white focus:bg-white border-2 border-slate-300 focus:border-blue-600 rounded-none pl-8 pr-7 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition font-medium"
               />
               <button 
                 v-if="gallerySearchQuery" 
                 @click="clearGallerySearch" 
-                class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-none bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition"
               >
                 ✕
               </button>
             </div>
 
-            <!-- Tombol Tambah Barang (FLAT) -->
-            <button @click="openAddProductModal()" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">
+            <!-- Tombol Tambah Barang (QubePOS) -->
+            <button @click="openAddProductModal()" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-black px-3 py-1.5 rounded-none flex items-center gap-1 transition cursor-pointer uppercase">
               <span>➕</span>
               <span>Tambah Barang</span>
             </button>
 
-            <!-- Tombol Tutup Galeri (FLAT) -->
-            <button @click="showGalleryModal = false" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition shrink-0 cursor-pointer">✕</button>
+            <!-- Tombol Tutup Galeri (QubePOS) -->
+            <button @click="showGalleryModal = false" class="w-8 h-8 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center justify-center font-bold text-xs transition shrink-0 cursor-pointer">✕</button>
           </div>
         </div>
 
-        <!-- Filter Chips (FLAT) -->
+        <!-- Filter Chips (QubePOS Tiles) -->
         <div class="px-4 py-2 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto text-xs shrink-0 bg-[#f8f9fa]">
           <button 
             @click="selectedCategory = 'Semua'"
-            :class="selectedCategory === 'Semua' ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-md font-bold' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-md font-medium'"
+            :class="selectedCategory === 'Semua' ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-none font-black uppercase' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 px-3.5 py-1.5 rounded-none font-bold uppercase'"
           >
             Semua
           </button>
@@ -2419,55 +2426,55 @@ onUnmounted(() => {
             v-for="cat in localCategories" 
             :key="cat.id || cat.name"
             @click="selectedCategory = cat.name"
-            :class="selectedCategory.toLowerCase() === cat.name.toLowerCase() ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-md font-bold' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-md font-medium'"
+            :class="selectedCategory.toLowerCase() === cat.name.toLowerCase() ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-none font-black uppercase' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 px-3.5 py-1.5 rounded-none font-bold uppercase'"
           >
             {{ cat.icon || '📦' }} {{ cat.name }}
           </button>
           <button 
             @click="openQuickAddCategory"
-            class="shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1.5 rounded-md font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
+            class="shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 px-2.5 py-1.5 rounded-none font-black text-[11px] flex items-center gap-1 transition cursor-pointer uppercase"
           >
             <span>➕</span> Kategori
           </button>
         </div>
 
-        <!-- Grid Produk (FLAT) -->
+        <!-- Grid Produk (QubePOS Square Tiles) -->
         <div class="p-3 grid grid-cols-3 gap-2 overflow-y-auto flex-1 content-start auto-rows-max">
           <!-- Kartu Tambah Barang Baru (Hanya Tampil Jika Produk Kosong / Tidak Ditemukan) -->
           <button 
             v-if="filteredCatalogProducts.length === 0" 
             @click="openAddProductModal(gallerySearchQuery)" 
-            class="border-2 border-dashed border-emerald-400 bg-emerald-50/70 hover:bg-emerald-100 active:bg-emerald-200/80 rounded-lg p-2.5 text-center flex flex-col items-center justify-center gap-1 transition cursor-pointer group h-[106px]"
+            class="border-2 border-dashed border-emerald-500 bg-emerald-50/70 hover:bg-emerald-100 active:bg-emerald-200/80 rounded-none p-2.5 text-center flex flex-col items-center justify-center gap-1 transition cursor-pointer group h-[110px]"
           >
-            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-base group-hover:scale-105 transition">➕</div>
-            <div class="text-xs text-emerald-950 font-bold">Tambah Produk Baru</div>
+            <div class="w-8 h-8 rounded-none bg-emerald-600 text-white flex items-center justify-center font-bold text-base transition">➕</div>
+            <div class="text-xs text-emerald-950 font-black uppercase">Tambah Produk Baru</div>
             <span class="text-[9px] text-emerald-700 font-medium">Daftarkan item ke katalog</span>
           </button>
 
-          <!-- List Produk (FLAT) -->
+          <!-- List Produk (QubePOS Tiles) -->
           <button 
             v-for="p in filteredCatalogProducts" 
             :key="p.id" 
             @click="addToCart(p, 0)"
-            class="bg-white hover:bg-blue-50 active:bg-blue-100 border border-slate-200 rounded-lg p-2.5 text-left flex flex-col justify-between transition cursor-pointer h-[106px] relative group"
+            class="bg-white hover:bg-blue-50/60 active:bg-blue-100 border-2 border-slate-200 hover:border-blue-600 rounded-none p-2.5 text-left flex flex-col justify-between transition cursor-pointer h-[110px] relative group"
           >
             <div class="flex items-start gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+              <div class="w-8 h-8 rounded-none bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
                 <img v-if="p.image" :src="p.image" :alt="p.name" class="w-full h-full object-cover" />
                 <span v-else class="text-xl">{{ p.icon || '📦' }}</span>
               </div>
               <div class="truncate flex-1">
                 <div class="flex items-center justify-between gap-1">
-                  <span class="text-[9px] text-blue-600 font-bold uppercase tracking-wider block truncate">{{ getProductCategoryName(p) }}</span>
+                  <span class="text-[9px] text-blue-600 font-black uppercase tracking-wider block truncate">{{ getProductCategoryName(p) }}</span>
                   <div class="flex items-center gap-1">
-                    <span v-if="p.units && p.units.length > 1" class="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded-md shrink-0">
+                    <span v-if="p.units && p.units.length > 1" class="text-[8px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.2 rounded-none shrink-0 uppercase">
                       {{ p.units.length }} Satuan
                     </span>
                     <button 
                       type="button"
                       @click.stop="openEditProductModal(p)"
                       title="Edit Produk / Atur Harga / Hapus"
-                      class="w-5 h-5 rounded-md bg-slate-100 border border-slate-200 hover:bg-amber-100 hover:border-amber-300 text-slate-600 hover:text-amber-800 flex items-center justify-center text-[10px] transition cursor-pointer"
+                      class="w-5 h-5 rounded-none bg-slate-100 border border-slate-300 hover:bg-amber-100 hover:border-amber-400 text-slate-700 hover:text-amber-900 flex items-center justify-center text-[10px] transition cursor-pointer"
                     >
                       ✏️
                     </button>
@@ -2477,29 +2484,29 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="mt-2 pt-1 border-t border-slate-200 flex justify-between items-end">
-              <span class="text-[10px] text-slate-500 font-medium">{{ p.units && p.units[0] ? p.units[0].name : 'Pcs' }}</span>
+              <span class="text-[10px] text-slate-500 font-bold uppercase">{{ p.units && p.units[0] ? p.units[0].name : 'Pcs' }}</span>
               <span class="text-xs font-mono text-emerald-700 font-black">
                 Rp {{ (p.units && p.units[0] ? p.units[0].price : 0).toLocaleString('id-ID') }}
               </span>
             </div>
           </button>
 
-          <!-- State jika belum ada produk atau hasil pencarian kosong (FLAT) -->
-          <div v-if="filteredCatalogProducts.length === 0" class="col-span-2 border border-slate-200 rounded-lg p-4 flex flex-col items-center justify-center text-center text-slate-400 bg-slate-50/60 min-h-[106px]">
+          <!-- State jika belum ada produk atau hasil pencarian kosong (QubePOS) -->
+          <div v-if="filteredCatalogProducts.length === 0" class="col-span-2 border-2 border-slate-200 rounded-none p-4 flex flex-col items-center justify-center text-center text-slate-400 bg-slate-50/60 min-h-[110px]">
             <span class="text-xl mb-1">{{ gallerySearchQuery ? '🔍' : '📦' }}</span>
-            <span class="text-xs font-bold text-slate-600">
+            <span class="text-xs font-black text-slate-700 uppercase">
               {{ gallerySearchQuery ? `Tidak ada produk dengan kata kunci "${gallerySearchQuery}"` : 'Belum ada barang di kategori ini' }}
             </span>
-            <span class="text-[10px] text-slate-400 mt-0.5">
+            <span class="text-[10px] text-slate-500 mt-0.5">
               {{ gallerySearchQuery ? 'Sentuh kartu hijau di samping untuk mendaftarkan barang ini' : 'Sentuh kartu hijau di samping untuk mendaftarkan barang' }}
             </span>
           </div>
         </div>
 
         <!-- Footer Galeri Produk -->
-        <div class="bg-[#f8f9fa] border-t border-slate-200 px-4 py-2 shrink-0 flex justify-between items-center text-[11px] text-slate-500">
+        <div class="bg-[#f8f9fa] border-t-2 border-slate-300 px-4 py-2 shrink-0 flex justify-between items-center text-[11px] text-slate-500">
           <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="w-2 h-2 rounded-none bg-emerald-500"></span>
             <span>Sentuh kartu untuk ke keranjang · Sentuh ✏️ untuk edit/hapus produk</span>
           </span>
           <span class="text-slate-400 font-mono text-[10px]">Panel kasir kanan tetap aktif</span>
@@ -2507,16 +2514,16 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 2. ANDROID SIDE SHEET 2: PILIH PELANGGAN (DOCK DI PANEL KANAN 35%) -->
+    <!-- 2. ANDROID SIDE SHEET 2: PILIH PELANGGAN (QubePOS DOCK DI PANEL KANAN 35%) -->
     <div v-if="showCustomerModal" class="fixed inset-0 z-50 flex items-stretch justify-end">
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-2xs" @click="showCustomerModal = false"></div>
-      <div class="relative w-[35%] h-full bg-white border-l border-slate-200 shadow-2xl flex flex-col overflow-hidden z-10">
-        <!-- Header (FLAT) -->
-        <div class="bg-white border-b border-slate-200 px-4 py-2.5 flex justify-between items-center shrink-0">
+      <div class="absolute inset-0 bg-black/40" @click="showCustomerModal = false"></div>
+      <div class="relative w-[35%] h-full bg-white border-l-2 border-slate-300 shadow-none flex flex-col overflow-hidden z-10">
+        <!-- Header (QubePOS) -->
+        <div class="bg-white border-b-2 border-slate-300 px-4 py-2.5 flex justify-between items-center shrink-0">
           <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">👥</div>
+            <div class="w-8 h-8 rounded-none bg-blue-600 text-white flex items-center justify-center font-bold text-xs">👥</div>
             <div>
-              <h3 class="font-black text-xs text-slate-900 leading-tight">Pilih Pelanggan / Member</h3>
+              <h3 class="font-black text-xs text-slate-900 leading-tight uppercase tracking-wide">Pilih Pelanggan / Member</h3>
               <p class="text-[10px] text-slate-500">Pilih pembeli untuk kasbon & riwayat</p>
             </div>
           </div>
@@ -2524,16 +2531,16 @@ onUnmounted(() => {
             <button 
               @click="openAddCustomerModal" 
               type="button"
-              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-[11px] font-black px-3 py-1.5 rounded-none flex items-center gap-1 transition cursor-pointer uppercase"
             >
               <span>➕</span>
               <span>Baru</span>
             </button>
-            <button @click="showCustomerModal = false" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+            <button @click="showCustomerModal = false" class="w-8 h-8 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
           </div>
         </div>
 
-        <!-- Search (FLAT) -->
+        <!-- Search (QubePOS) -->
         <div class="p-3 border-b border-slate-200 bg-[#f8f9fa] shrink-0">
           <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">🔍</span>
@@ -2541,55 +2548,55 @@ onUnmounted(() => {
               type="text" 
               v-model="customerSearchQuery" 
               placeholder="Cari nama atau nomor HP..." 
-              class="w-full bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition font-medium"
+              class="w-full bg-white border-2 border-slate-300 rounded-none pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition font-medium"
             />
           </div>
         </div>
 
-        <!-- List Pelanggan (FLAT) -->
+        <!-- List Pelanggan (QubePOS Table) -->
         <div class="flex flex-col gap-1.5 p-3 overflow-y-auto flex-1 divide-y divide-slate-100">
-          <!-- Pilihan Cepat: Pelanggan Umum (Default Cash - FLAT) -->
+          <!-- Pilihan Cepat: Pelanggan Umum (Default Cash) -->
           <div 
             @click="selectCustomer(getDefaultCustomer())"
-            :class="(selectedCustomer?.id === 1 || selectedCustomer?.name?.toLowerCase()?.includes('umum')) ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : 'border-slate-200 bg-white hover:bg-slate-50'"
-            class="p-2.5 rounded-lg border flex items-center justify-between transition cursor-pointer mb-1"
+            :class="(selectedCustomer?.id === 1 || selectedCustomer?.name?.toLowerCase()?.includes('umum')) ? 'border-2 border-blue-600 bg-blue-50' : 'border border-slate-300 bg-white hover:bg-slate-50'"
+            class="p-2.5 rounded-none flex items-center justify-between transition cursor-pointer mb-1"
           >
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+              <div class="w-8 h-8 rounded-none bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
                 🛒
               </div>
               <div>
-                <div class="font-black text-xs text-slate-900">Pelanggan Umum</div>
+                <div class="font-black text-xs text-slate-900 uppercase">Pelanggan Umum</div>
                 <div class="text-[10px] text-slate-500">Non-Member · Transaksi Tunai Langsung</div>
               </div>
             </div>
-            <span v-if="selectedCustomer?.id === 1 || selectedCustomer?.name?.toLowerCase()?.includes('umum')" class="text-[10px] bg-blue-600 text-white font-bold px-2.5 py-0.5 rounded-md">
+            <span v-if="selectedCustomer?.id === 1 || selectedCustomer?.name?.toLowerCase()?.includes('umum')" class="text-[10px] bg-blue-600 text-white font-black px-2.5 py-1 rounded-none uppercase">
               ✓ Aktif
             </span>
-            <span v-else class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+            <span v-else class="text-[10px] text-blue-700 font-bold bg-blue-50 px-2.5 py-1 rounded-none border border-blue-300 uppercase">
               Pilih
             </span>
           </div>
 
-          <!-- List Member Terdaftar Lainnya (FLAT) -->
+          <!-- List Member Terdaftar Lainnya (QubePOS) -->
           <div 
             v-for="c in filteredCustomers.filter(c => c.id !== 1 && !c.name.toLowerCase().includes('umum'))" 
             :key="c.id" 
             @click="selectCustomer(c)"
-            class="pt-2 flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition border border-transparent hover:border-blue-200 group"
+            class="pt-2 flex items-center justify-between p-2 rounded-none hover:bg-blue-50 cursor-pointer transition border border-transparent hover:border-blue-300 group"
           >
             <div class="flex items-center gap-2.5 min-w-0 pr-2">
-              <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs shrink-0 border border-slate-200">
+              <div class="w-8 h-8 rounded-none bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-xs shrink-0 border border-slate-300">
                 {{ c.name.charAt(0) }}
               </div>
               <div class="min-w-0">
                 <div class="font-bold text-xs text-slate-900 truncate">{{ c.name }}</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ c.phone || '-' }}</div>
+                <div class="text-[10px] text-slate-500 font-mono">{{ c.phone || '-' }}</div>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <div class="text-right">
-                <span class="text-[9px] text-slate-400 block font-medium">Kasbon:</span>
+                <span class="text-[9px] text-slate-400 block font-bold uppercase">Kasbon:</span>
                 <span class="text-xs font-mono font-bold" :class="c.kasbon_balance > 0 ? 'text-rose-600' : 'text-slate-400'">
                   Rp {{ (c.kasbon_balance || 0).toLocaleString('id-ID') }}
                 </span>
@@ -2598,7 +2605,7 @@ onUnmounted(() => {
                 type="button"
                 @click.stop="openEditCustomerModal(c)"
                 title="Edit Data Pelanggan / Member"
-                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-500 border border-slate-200 flex items-center justify-center text-xs transition cursor-pointer"
+                class="w-7 h-7 rounded-none bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-600 border border-slate-300 flex items-center justify-center text-xs transition cursor-pointer"
               >
                 ✏️
               </button>
@@ -2606,25 +2613,25 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Footer Pelanggan (FLAT) -->
-        <div class="p-3 border-t border-slate-200 bg-[#f8f9fa] shrink-0 flex justify-between items-center">
+        <!-- Footer Pelanggan (QubePOS) -->
+        <div class="p-3 border-t-2 border-slate-300 bg-[#f8f9fa] shrink-0 flex justify-between items-center">
           <span class="text-[10px] text-slate-400 font-medium">Panel keranjang kiri tetap aktif</span>
-          <button @click="showCustomerModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-1.5 rounded-lg font-bold transition cursor-pointer">Tutup</button>
+          <button @click="showCustomerModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs px-4 py-1.5 rounded-none font-bold transition cursor-pointer uppercase">Tutup</button>
         </div>
       </div>
     </div>
 
-    <!-- 2b. ANDROID DIALOG: TAMBAH / EDIT PELANGGAN & MEMBER (FLAT) -->
+    <!-- 2b. ANDROID DIALOG: TAMBAH / EDIT PELANGGAN & MEMBER (QubePOS) -->
     <div v-if="showAddCustomerModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-[480px] max-w-full border border-slate-300 overflow-hidden flex flex-col shadow-xl">
+      <div class="bg-white rounded-none w-[480px] max-w-full border-2 border-slate-400 overflow-hidden flex flex-col shadow-none">
         <!-- Header -->
-        <div class="bg-white px-5 py-3.5 border-b border-slate-200 flex justify-between items-center">
+        <div class="bg-white px-5 py-3.5 border-b-2 border-slate-300 flex justify-between items-center">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" :class="editingCustomer ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700'">
+            <div class="w-8 h-8 rounded-none flex items-center justify-center text-sm font-bold" :class="editingCustomer ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'">
               {{ editingCustomer ? '✏️' : '👤' }}
             </div>
             <div>
-              <h3 class="font-bold text-sm text-slate-900 leading-tight">
+              <h3 class="font-black text-sm text-slate-900 leading-tight uppercase tracking-wide">
                 {{ editingCustomer ? 'Edit Data Pelanggan' : 'Tambah Pelanggan Baru' }}
               </h3>
               <p class="text-[11px] text-slate-500">
@@ -2632,7 +2639,7 @@ onUnmounted(() => {
               </p>
             </div>
           </div>
-          <button @click="showAddCustomerModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center text-xs font-bold transition cursor-pointer">
+          <button @click="showAddCustomerModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center text-xs font-bold transition cursor-pointer">
             ✕
           </button>
         </div>
@@ -2648,7 +2655,7 @@ onUnmounted(() => {
               type="text" 
               v-model="customerForm.name" 
               placeholder="Contoh: Bu Hj. Maryam, Pak RT, dsb."
-              class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-blue-500 transition"
+              class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:border-blue-600 transition"
               @keydown.enter.prevent="saveCustomer"
             />
           </div>
@@ -2662,7 +2669,7 @@ onUnmounted(() => {
               type="text" 
               v-model="customerForm.phone" 
               placeholder="Contoh: 081234567890 (bisa dikosongkan)"
-              class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-blue-500 transition"
+              class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-blue-600 transition"
             />
           </div>
 
@@ -2675,7 +2682,7 @@ onUnmounted(() => {
               type="text" 
               v-model="customerForm.address" 
               placeholder="Contoh: RT 03 RW 02 (Depan masjid)"
-              class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500 transition"
+              class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition"
             />
           </div>
 
@@ -2690,7 +2697,7 @@ onUnmounted(() => {
                 type="number" 
                 v-model="customerForm.credit_limit" 
                 placeholder="500000"
-                class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:bg-white focus:border-blue-500 transition"
+                class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none pl-9 pr-3 py-2 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:bg-white focus:border-blue-600 transition"
               />
             </div>
             <span class="text-[10px] text-slate-400 mt-1 block">Pelanggan tidak dapat kasbon jika total hutang melebihi limit ini.</span>
@@ -2698,13 +2705,13 @@ onUnmounted(() => {
         </div>
 
         <!-- Footer -->
-        <div class="bg-[#f8f9fa] border-t border-slate-200 px-5 py-3 flex items-center justify-between">
+        <div class="bg-[#f8f9fa] border-t-2 border-slate-300 px-5 py-3 flex items-center justify-between">
           <div>
             <button 
               v-if="editingCustomer && editingCustomer.id !== 1" 
               type="button" 
               @click="deleteCustomer(editingCustomer.id); showAddCustomerModal = false" 
-              class="text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-rose-300 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1 cursor-pointer"
+              class="text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 text-xs font-bold px-3 py-2 rounded-none transition flex items-center gap-1 cursor-pointer uppercase"
             >
               <span>🗑️</span> Hapus
             </button>
@@ -2713,14 +2720,14 @@ onUnmounted(() => {
             <button 
               type="button" 
               @click="showAddCustomerModal = false" 
-              class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+              class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-none transition cursor-pointer uppercase"
             >
               Batal
             </button>
             <button 
               type="button" 
               @click="saveCustomer" 
-              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold px-5 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-black px-5 py-2 rounded-none transition flex items-center gap-1.5 cursor-pointer uppercase"
             >
               <span>💾</span>
               <span>{{ editingCustomer ? 'Simpan Perubahan' : 'Daftarkan Pelanggan' }}</span>
@@ -2730,23 +2737,23 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 3. ANDROID DIALOG: TAMBAH PRODUK BARU (DUAL-CARD SPLIT LAYOUT 1097x686 - FLAT) -->
+    <!-- 3. ANDROID DIALOG: TAMBAH PRODUK BARU (DUAL-CARD SPLIT LAYOUT 1097x686 - QubePOS) -->
     <div v-if="showAddProductModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3">
-      <div class="bg-white rounded-xl w-[860px] max-w-[860px] h-[550px] max-h-[550px] flex shadow-xl overflow-hidden border border-slate-300">
+      <div class="bg-white rounded-none w-[860px] max-w-[860px] h-[550px] max-h-[550px] flex shadow-none overflow-hidden border-2 border-slate-400">
         
         <!-- ================= KOLOM KIRI: FORMULIR PRODUK (58%) ================= -->
-        <div class="w-[58%] border-r border-slate-200 p-4 flex flex-col justify-between overflow-y-auto">
+        <div class="w-[58%] border-r-2 border-slate-300 p-4 flex flex-col justify-between overflow-y-auto">
           <div>
-            <!-- Header Modal Kiri (FLAT) -->
-            <div class="flex items-center gap-2 border-b border-slate-200 pb-2 mb-3">
+            <!-- Header Modal Kiri (QubePOS) -->
+            <div class="flex items-center gap-2 border-b-2 border-slate-200 pb-2 mb-3">
               <div 
-                class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
-                :class="editingProductId ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'"
+                class="w-8 h-8 rounded-none flex items-center justify-center font-black text-sm"
+                :class="editingProductId ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'"
               >
                 {{ editingProductId ? '✏️' : '➕' }}
               </div>
               <div>
-                <h3 class="font-bold text-xs text-slate-900 leading-tight">
+                <h3 class="font-black text-xs text-slate-900 leading-tight uppercase tracking-wide">
                   {{ editingProductId ? 'Edit Data Produk' : 'Tambah Produk Baru' }}
                 </h3>
                 <p class="text-[10px] text-slate-500">
@@ -2764,7 +2771,7 @@ onUnmounted(() => {
                   type="text" 
                   v-model="newProd.name" 
                   placeholder="Contoh: Kecap Bango 550ml..."
-                  class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
@@ -2773,7 +2780,7 @@ onUnmounted(() => {
                 <div>
                   <div class="flex justify-between items-center mb-0.5">
                     <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Barcode:</label>
-                    <button type="button" @click="scanBarcodeForNewProduct" class="text-[9px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-300 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-2xs transition">
+                    <button type="button" @click="scanBarcodeForNewProduct" class="text-[9px] text-emerald-800 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-300 px-2 py-0.5 rounded-none font-black flex items-center gap-1 transition uppercase">
                       <span>📷</span>
                       <span>Scan Barcode</span>
                     </button>
@@ -2784,10 +2791,10 @@ onUnmounted(() => {
                       v-model="newProd.barcode" 
                       placeholder="Scan kemasan..."
                       :class="[
-                        'w-full rounded-xl pl-2.5 pr-7 py-1.5 text-xs font-mono focus:outline-none transition border',
+                        'w-full rounded-none pl-2.5 pr-7 py-1.5 text-xs font-mono focus:outline-none transition border-2',
                         duplicateProductWarning 
-                          ? 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-400 font-bold' 
-                          : 'bg-[#f1f3f4] border-slate-200 text-slate-800 focus:ring-2 focus:ring-emerald-500'
+                          ? 'bg-rose-50 border-rose-500 text-rose-950 font-black' 
+                          : 'bg-[#f1f3f4] border-slate-300 text-slate-900 focus:border-emerald-600'
                       ]"
                     />
                     <button v-if="newProd.barcode" type="button" @click="newProd.barcode = ''" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold" title="Hapus barcode">
@@ -2798,40 +2805,40 @@ onUnmounted(() => {
                 <div>
                   <div class="flex justify-between items-center mb-0.5">
                     <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Satuan Dasar:</label>
-                    <button type="button" @click="showQuickAddUnit = !showQuickAddUnit" class="text-[9px] text-blue-600 font-bold hover:underline">➕ Satuan</button>
+                    <button type="button" @click="showQuickAddUnit = !showQuickAddUnit" class="text-[9px] text-blue-600 font-bold hover:underline uppercase">➕ Satuan</button>
                   </div>
 
                   <!-- Inline Quick Add Satuan -->
-                  <div v-if="showQuickAddUnit" class="mb-1 flex gap-1 p-1 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div v-if="showQuickAddUnit" class="mb-1 flex gap-1 p-1 bg-blue-50 border border-blue-200 rounded-none">
                     <input 
                       type="text" 
                       v-model="quickUnitInput" 
                       placeholder="Satuan baru..." 
-                      class="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs text-slate-800 font-bold focus:outline-none"
+                      class="flex-1 bg-white border border-slate-300 rounded-none px-2 py-0.5 text-xs text-slate-800 font-bold focus:outline-none"
                       @keydown.enter.prevent="quickAddUnit('base')"
                     />
-                    <button type="button" @click="quickAddUnit('base')" class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-lg font-bold">OK</button>
-                    <button type="button" @click="showQuickAddUnit = false" class="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded-lg">✕</button>
+                    <button type="button" @click="quickAddUnit('base')" class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-none font-bold">OK</button>
+                    <button type="button" @click="showQuickAddUnit = false" class="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded-none">✕</button>
                   </div>
 
-                  <select v-model="newProd.unit" class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <select v-model="newProd.unit" class="w-full bg-[#f1f3f4] border-2 border-slate-300 rounded-none px-2 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:border-emerald-600 uppercase">
                     <option v-for="u in availableUnits" :key="u" :value="u">{{ u }}</option>
                   </select>
                 </div>
               </div>
 
-              <!-- Notifikasi Barcode Duplikat Sesaat Setelah Terisi (FLAT) -->
+              <!-- Notifikasi Barcode Duplikat Sesaat Setelah Terisi (QubePOS) -->
               <div 
                 v-if="duplicateProductWarning" 
-                class="p-2.5 bg-rose-50 border border-rose-300 rounded-lg flex items-start gap-2 text-rose-950 shadow-2xs"
+                class="p-2.5 bg-rose-50 border-2 border-rose-400 rounded-none flex items-start gap-2 text-rose-950"
               >
-                <div class="w-7 h-7 rounded-lg bg-rose-200 text-rose-800 flex items-center justify-center text-sm font-bold shrink-0">
+                <div class="w-7 h-7 rounded-none bg-rose-200 text-rose-800 flex items-center justify-center text-sm font-bold shrink-0">
                   ⚠️
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-[11px] font-black text-rose-700 flex items-center justify-between">
                     <span>BARCODE SUDAH TERDAFTAR!</span>
-                    <span class="text-[9px] bg-rose-200 text-rose-900 font-bold px-1.5 py-0.5 rounded">Tidak Boleh Duplikat</span>
+                    <span class="text-[9px] bg-rose-200 text-rose-900 font-black px-1.5 py-0.5 rounded-none uppercase">Tidak Boleh Duplikat</span>
                   </div>
                   <div class="text-xs font-bold text-slate-900 truncate mt-0.5">
                     Produk: {{ duplicateProductWarning.name }}
@@ -2845,14 +2852,14 @@ onUnmounted(() => {
                     <button 
                       type="button" 
                       @click="openEditProductModal(duplicateProductWarning)" 
-                      class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-[10px] px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer transition border border-amber-600"
+                      class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-[10px] px-3 py-1.5 rounded-none flex items-center gap-1 cursor-pointer transition uppercase"
                     >
                       <span>✏️</span> Buka & Edit Produk Tersebut
                     </button>
                     <button 
                       type="button" 
                       @click="newProd.barcode = ''" 
-                      class="bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-[10px] px-2.5 py-1.5 rounded-lg cursor-pointer transition"
+                      class="bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-[10px] px-2.5 py-1.5 rounded-none cursor-pointer transition uppercase"
                     >
                       Ganti Barcode
                     </button>
@@ -2860,11 +2867,11 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Kategori Chips + Quick Add (FLAT) -->
+              <!-- Kategori Chips + Quick Add (QubePOS) -->
               <div>
                 <div class="flex justify-between items-center mb-1">
                   <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Kategori Produk:</label>
-                  <button type="button" @click="openQuickAddCategory" class="text-[9px] text-blue-600 font-bold hover:underline flex items-center gap-0.5">
+                  <button type="button" @click="openQuickAddCategory" class="text-[9px] text-blue-600 font-bold hover:underline flex items-center gap-0.5 uppercase">
                     <span>➕</span> Kategori Baru
                   </button>
                 </div>
@@ -2874,8 +2881,8 @@ onUnmounted(() => {
                     :key="cat.id || cat.name"
                     type="button"
                     @click="newProd.category = cat.name"
-                    :class="newProd.category.toLowerCase() === cat.name.toLowerCase() ? 'bg-emerald-600 text-white font-bold border-emerald-700' : 'bg-slate-100 text-slate-700 border-slate-200 font-medium hover:bg-slate-200'"
-                    class="text-[10px] px-2 py-0.5 rounded-md border transition flex items-center gap-1 cursor-pointer"
+                    :class="newProd.category.toLowerCase() === cat.name.toLowerCase() ? 'bg-emerald-600 text-white font-black' : 'bg-slate-100 text-slate-800 border border-slate-300 font-bold hover:bg-slate-200'"
+                    class="text-[10px] px-2 py-1 rounded-none border transition flex items-center gap-1 cursor-pointer uppercase"
                   >
                     <span>{{ cat.icon || '📦' }}</span>
                     <span>{{ cat.name }}</span>
@@ -2883,7 +2890,7 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Harga Jual Satuan Dasar (Touch Highlight - FLAT) -->
+              <!-- Harga Jual Satuan Dasar (Touch Highlight - QubePOS) -->
               <div>
                 <div class="flex justify-between items-center mb-0.5">
                   <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Harga Satuan Eceran (Rp):</label>
@@ -2891,8 +2898,8 @@ onUnmounted(() => {
                 </div>
                 <div 
                   @click="activeNumpadTarget = 'base_price'" 
-                  :class="activeNumpadTarget === 'base_price' ? 'ring-2 ring-emerald-500 bg-emerald-50/50 border-emerald-500' : 'bg-[#f1f3f4] border-slate-300'"
-                  class="border rounded-lg px-3 py-1.5 flex items-center justify-between cursor-pointer transition shadow-2xs"
+                  :class="activeNumpadTarget === 'base_price' ? 'border-2 border-emerald-600 bg-emerald-50/50' : 'bg-[#f1f3f4] border-2 border-slate-300'"
+                  class="border rounded-none px-3 py-1.5 flex items-center justify-between cursor-pointer transition"
                 >
                   <span class="text-xs font-bold text-slate-400">Rp</span>
                   <input 
@@ -2904,23 +2911,23 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Multi-Satuan Grosir (Dus/Renceng - FLAT) -->
-              <div class="border border-slate-200 rounded-lg p-2 bg-slate-50">
+              <!-- Multi-Satuan Grosir (Dus/Renceng - QubePOS) -->
+              <div class="border-2 border-slate-200 rounded-none p-2 bg-slate-50">
                 <div class="flex justify-between items-center mb-1">
                   <div>
-                    <span class="text-[11px] font-bold text-slate-800 block leading-tight">Multi-Satuan / Grosir</span>
+                    <span class="text-[11px] font-black text-slate-800 block leading-tight uppercase">Multi-Satuan / Grosir</span>
                     <span class="text-[8px] text-slate-500">Jual Dus/Renceng/Slop</span>
                   </div>
                   <button 
                     type="button" 
                     @click="addExtraUnit" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-2xs transition cursor-pointer"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black px-2 py-1 rounded-none flex items-center gap-1 transition cursor-pointer uppercase"
                   >
                     <span>➕</span> Tambah Grosir
                   </button>
                 </div>
 
-                <div v-if="newProd.extraUnits.length === 0" class="text-[9px] text-slate-400 italic py-1 text-center bg-white rounded-lg border border-dashed border-slate-200">
+                <div v-if="newProd.extraUnits.length === 0" class="text-[9px] text-slate-400 italic py-1 text-center bg-white rounded-none border border-dashed border-slate-300">
                   Hanya satuan eceran ({{ newProd.unit }}). Klik "+ Tambah Grosir" jika ada penjualan grosir.
                 </div>
 
@@ -2929,12 +2936,12 @@ onUnmounted(() => {
                   <div 
                     v-for="(eu, idx) in newProd.extraUnits" 
                     :key="idx" 
-                    class="bg-white border border-slate-200 rounded-lg p-1.5 flex items-center gap-1.5 shadow-2xs"
+                    class="bg-white border border-slate-300 rounded-none p-1.5 flex items-center gap-1.5"
                   >
                     <!-- Satuan Grosir -->
                     <div class="w-1/3">
                       <span class="text-[8px] font-bold text-slate-400 uppercase block mb-0.5">Grosir:</span>
-                      <select v-model="eu.name" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-md px-1 py-0.5 text-[10px] font-bold text-slate-800">
+                      <select v-model="eu.name" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-none px-1 py-0.5 text-[10px] font-bold text-slate-800 uppercase">
                         <option v-for="u in availableUnits" :key="u" :value="u">{{ u }}</option>
                       </select>
                     </div>
@@ -2947,8 +2954,8 @@ onUnmounted(() => {
                       </div>
                       <div 
                         @click="activeNumpadTarget = 'ratio_' + idx"
-                        :class="activeNumpadTarget === 'ratio_' + idx ? 'ring-2 ring-emerald-500 bg-emerald-50/50 border-emerald-500' : 'bg-[#f1f3f4] border-slate-300'"
-                        class="border rounded-md px-1 py-0.5 flex items-center justify-center cursor-pointer transition"
+                        :class="activeNumpadTarget === 'ratio_' + idx ? 'border-2 border-emerald-600 bg-emerald-50/50' : 'bg-[#f1f3f4] border border-slate-300'"
+                        class="border rounded-none px-1 py-0.5 flex items-center justify-center cursor-pointer transition"
                       >
                         <input 
                           type="text" 
@@ -2967,8 +2974,8 @@ onUnmounted(() => {
                       </div>
                       <div 
                         @click="activeNumpadTarget = 'price_' + idx" 
-                        :class="activeNumpadTarget === 'price_' + idx ? 'ring-2 ring-emerald-500 bg-emerald-50/50 border-emerald-500' : 'bg-[#f1f3f4] border-slate-300'"
-                        class="border rounded-md px-1.5 py-0.5 flex items-center justify-between cursor-pointer transition"
+                        :class="activeNumpadTarget === 'price_' + idx ? 'border-2 border-emerald-600 bg-emerald-50/50' : 'bg-[#f1f3f4] border border-slate-300'"
+                        class="border rounded-none px-1.5 py-0.5 flex items-center justify-between cursor-pointer transition"
                       >
                         <input 
                           type="text" 
@@ -2984,7 +2991,7 @@ onUnmounted(() => {
                     <button 
                       type="button" 
                       @click="removeExtraUnit(idx)" 
-                      class="w-5 h-5 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 flex items-center justify-center font-bold text-[10px] shrink-0 self-end mb-0.5 cursor-pointer"
+                      class="w-5 h-5 rounded-none bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-300 flex items-center justify-center font-bold text-[10px] shrink-0 self-end mb-0.5 cursor-pointer"
                     >
                       ✕
                     </button>
@@ -2992,25 +2999,25 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Opsi Langsung Keranjang + Counter Pcs (FLAT) -->
-              <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+              <!-- Opsi Langsung Keranjang + Counter Pcs (QubePOS) -->
+              <div class="p-2 bg-emerald-50 border border-emerald-300 rounded-none flex items-center justify-between">
                 <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input type="checkbox" v-model="newProd.autoAdd" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500" />
-                  <span class="text-xs font-bold text-emerald-900">Langsung masuk keranjang:</span>
+                  <input type="checkbox" v-model="newProd.autoAdd" class="w-4 h-4 text-emerald-600 rounded-none focus:ring-0" />
+                  <span class="text-xs font-black text-emerald-950 uppercase">Langsung masuk keranjang:</span>
                 </label>
                 <div v-if="newProd.autoAdd" class="flex items-center gap-1">
-                  <button type="button" @click="newProd.autoAddQty = Math.max(1, newProd.autoAddQty - 1)" class="w-6 h-6 rounded-md bg-white border border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-center shadow-2xs hover:bg-emerald-100 cursor-pointer">
+                  <button type="button" @click="newProd.autoAddQty = Math.max(1, newProd.autoAddQty - 1)" class="w-7 h-7 rounded-none bg-white border border-emerald-300 text-emerald-800 font-black text-sm flex items-center justify-center hover:bg-emerald-100 cursor-pointer">
                     -
                   </button>
                   <div 
                     @click="activeNumpadTarget = 'auto_qty'" 
-                    :class="activeNumpadTarget === 'auto_qty' ? 'ring-2 ring-emerald-500 bg-white' : 'bg-emerald-100/60'"
-                    class="px-2 py-0.5 rounded-md border border-emerald-300 cursor-pointer text-center font-mono font-black text-xs text-emerald-950 min-w-10 shadow-2xs"
+                    :class="activeNumpadTarget === 'auto_qty' ? 'border-2 border-emerald-600 bg-white' : 'bg-emerald-100/60 border border-emerald-300'"
+                    class="px-2.5 py-1 rounded-none cursor-pointer text-center font-mono font-black text-xs text-emerald-950 min-w-10"
                     title="Sentuh untuk ubah qty dengan numpad"
                   >
                     {{ newProd.autoAddQty }} {{ newProd.unit }}
                   </div>
-                  <button type="button" @click="newProd.autoAddQty += 1" class="w-6 h-6 rounded-md bg-white border border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-center shadow-2xs hover:bg-emerald-100 cursor-pointer">
+                  <button type="button" @click="newProd.autoAddQty += 1" class="w-7 h-7 rounded-none bg-white border border-emerald-300 text-emerald-800 font-black text-sm flex items-center justify-center hover:bg-emerald-100 cursor-pointer">
                     +
                   </button>
                 </div>
@@ -3018,19 +3025,19 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Footer Tombol Kiri (FLAT) -->
-          <div class="flex gap-2 pt-2 border-t border-slate-200 mt-2">
+          <!-- Footer Tombol Kiri (QubePOS) -->
+          <div class="flex gap-2 pt-2 border-t-2 border-slate-200 mt-2">
             <button 
               v-if="editingProductId"
               type="button"
               @click="deleteCurrentProduct" 
-              class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3.5 py-2 rounded-lg font-bold border border-rose-300 transition flex items-center gap-1 cursor-pointer"
+              class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3.5 py-2.5 rounded-none font-black border border-rose-300 transition flex items-center gap-1 cursor-pointer uppercase"
               title="Hapus produk permanen"
             >
               <span>🗑️</span>
               <span>Hapus</span>
             </button>
-            <button @click="showAddProductModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold border border-slate-200 transition cursor-pointer">
+            <button @click="showAddProductModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-none font-bold border border-slate-300 transition cursor-pointer uppercase">
               Batal
             </button>
             <button 
@@ -3039,7 +3046,7 @@ onUnmounted(() => {
               :class="duplicateProductWarning 
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
                 : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'"
-              class="flex-1 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1"
+              class="flex-1 text-xs py-2.5 rounded-none font-black transition flex items-center justify-center gap-1 uppercase"
             >
               <span>💾</span>
               <span>{{ duplicateProductWarning ? '⚠️ Barcode Duplikat' : (editingProductId ? 'Simpan Perubahan' : 'Simpan Produk') }}</span>
@@ -3047,23 +3054,23 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- ================= KOLOM KANAN: DEDICATED SMART NUMPAD (42% - FLAT) ================= -->
+        <!-- ================= KOLOM KANAN: DEDICATED SMART NUMPAD (42% - QubePOS) ================= -->
         <div class="w-[42%] bg-[#f8f9fa] p-4 flex flex-col justify-between select-none">
           <div>
             <!-- Header Numpad -->
-            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
-              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <div class="flex justify-between items-center pb-2 border-b-2 border-slate-200">
+              <span class="text-xs font-black text-slate-700 flex items-center gap-1.5 uppercase">
                 <span>🔢</span>
                 <span>Numpad Kasir Standby</span>
               </span>
-              <button @click="showAddProductModal = false" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">
+              <button @click="showAddProductModal = false" class="w-8 h-8 rounded-none bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">
                 ✕
               </button>
             </div>
 
-            <!-- Display Numpad Terbaca Jelas (FLAT) -->
-            <div class="mt-2.5 bg-white border-2 border-emerald-500 rounded-lg p-2.5 text-right">
-              <div class="flex justify-between items-center text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">
+            <!-- Display Numpad Terbaca Jelas (QubePOS) -->
+            <div class="mt-2.5 bg-white border-2 border-emerald-600 rounded-none p-2.5 text-right">
+              <div class="flex justify-between items-center text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-0.5">
                 <span>Target:</span>
                 <span class="truncate ml-1">{{ activeNumpadLabel }}</span>
               </div>
@@ -3078,48 +3085,48 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Shortcut Baris Cepat (FLAT) -->
+            <!-- Shortcut Baris Cepat (QubePOS Tiles) -->
             <div class="mt-2">
               <div v-if="isQtyModeActive" class="grid grid-cols-6 gap-1 font-mono text-[9px]">
-                <button type="button" v-for="q in [6, 10, 12, 20, 24, 40]" :key="q" @click="universalNumpad(q)" class="bg-white hover:bg-emerald-50 border border-slate-200 py-1.5 rounded-lg font-bold text-slate-700 transition text-center cursor-pointer">
+                <button type="button" v-for="q in [6, 10, 12, 20, 24, 40]" :key="q" @click="universalNumpad(q)" class="bg-white hover:bg-emerald-50 border border-slate-300 py-1.5 rounded-none font-bold text-slate-700 transition text-center cursor-pointer">
                   {{ q }}
                 </button>
               </div>
               <div v-else class="grid grid-cols-6 gap-1 font-mono text-[9px]">
-                <button type="button" v-for="p in [1000, 2000, 5000, 10000, 20000, 50000]" :key="p" @click="universalNumpad(p)" class="bg-white hover:bg-emerald-50 border border-slate-200 py-1.5 rounded-lg font-bold text-slate-700 transition text-center cursor-pointer">
+                <button type="button" v-for="p in [1000, 2000, 5000, 10000, 20000, 50000]" :key="p" @click="universalNumpad(p)" class="bg-white hover:bg-emerald-50 border border-slate-300 py-1.5 rounded-none font-bold text-slate-700 transition text-center cursor-pointer">
                   +{{ p >= 1000 ? (p/1000) + 'k' : p }}
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Numpad Touch Grid Berukuran Besar (FLAT) -->
+          <!-- Numpad Touch Grid Berukuran Besar (QubePOS Industrial Grid) -->
           <div class="grid grid-cols-4 gap-1.5 font-mono text-sm mt-2">
-            <button type="button" v-for="n in ['1', '2', '3']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg font-black text-slate-800 text-center border border-slate-200 transition cursor-pointer">
+            <button type="button" v-for="n in ['1', '2', '3']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-3 rounded-none font-black text-slate-900 text-center border border-slate-300 transition cursor-pointer text-base">
               {{ n }}
             </button>
-            <button type="button" @click="universalNumpad('DEL')" class="bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 py-2.5 rounded-lg font-black flex items-center justify-center border border-amber-200 transition cursor-pointer">
+            <button type="button" @click="universalNumpad('DEL')" class="bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-900 py-3 rounded-none font-black flex items-center justify-center border border-amber-300 transition cursor-pointer">
               ⌫
             </button>
 
-            <button type="button" v-for="n in ['4', '5', '6']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg font-black text-slate-800 text-center border border-slate-200 transition cursor-pointer">
+            <button type="button" v-for="n in ['4', '5', '6']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-3 rounded-none font-black text-slate-900 text-center border border-slate-300 transition cursor-pointer text-base">
               {{ n }}
             </button>
-            <button type="button" @click="universalNumpad('C')" class="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-700 py-2.5 rounded-lg font-black border border-rose-200 transition cursor-pointer">
+            <button type="button" @click="universalNumpad('C')" class="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 py-3 rounded-none font-black border border-rose-300 transition cursor-pointer">
               C
             </button>
 
-            <button type="button" v-for="n in ['7', '8', '9']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg font-black text-slate-800 text-center border border-slate-200 transition cursor-pointer">
+            <button type="button" v-for="n in ['7', '8', '9']" :key="n" @click="universalNumpad(n)" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-3 rounded-none font-black text-slate-900 text-center border border-slate-300 transition cursor-pointer text-base">
               {{ n }}
             </button>
-            <button type="button" @click="universalNumpad(isQtyModeActive ? 1 : '000')" :class="isQtyModeActive ? 'opacity-30 pointer-events-none' : ''" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg font-black text-slate-800 text-xs border border-slate-200 transition cursor-pointer">
+            <button type="button" @click="universalNumpad(isQtyModeActive ? 1 : '000')" :class="isQtyModeActive ? 'opacity-30 pointer-events-none' : ''" class="bg-white hover:bg-slate-200 active:bg-slate-300 py-3 rounded-none font-black text-slate-900 text-xs border border-slate-300 transition cursor-pointer">
               {{ isQtyModeActive ? '-' : '000' }}
             </button>
 
-            <button type="button" @click="universalNumpad('0')" class="col-span-2 bg-white hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg font-black text-slate-800 text-center border border-slate-200 transition cursor-pointer">
+            <button type="button" @click="universalNumpad('0')" class="col-span-2 bg-white hover:bg-slate-200 active:bg-slate-300 py-3 rounded-none font-black text-slate-900 text-center border border-slate-300 transition cursor-pointer text-base">
               0
             </button>
-            <button type="button" @click="activeNumpadTarget = (activeNumpadTarget === 'base_price' && newProd.extraUnits.length > 0 ? 'ratio_0' : 'base_price')" class="col-span-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-800 py-2.5 rounded-lg font-bold text-xs border border-blue-200 transition cursor-pointer">
+            <button type="button" @click="activeNumpadTarget = (activeNumpadTarget === 'base_price' && newProd.extraUnits.length > 0 ? 'ratio_0' : 'base_price')" class="col-span-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-900 py-3 rounded-none font-black text-xs border border-blue-300 transition cursor-pointer uppercase">
               Target ⇄
             </button>
           </div>
@@ -3129,18 +3136,18 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- MODAL QUICK ADD KATEGORI BARU (FLAT) -->
+    <!-- MODAL QUICK ADD KATEGORI BARU (TRUE FLAT) -->
     <div v-if="showQuickAddCategoryModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-[70] flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col shadow-xl p-4 gap-3 border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col shadow-none p-4 gap-3 border-2 border-slate-400">
         <div class="flex justify-between items-center border-b border-slate-200 pb-2">
           <div class="flex items-center gap-2">
-            <span class="text-xl p-1 bg-blue-50 rounded-lg border border-blue-200">{{ quickCatIcon }}</span>
+            <span class="text-xl p-1 bg-blue-50 rounded-none border border-blue-200">{{ quickCatIcon }}</span>
             <div>
               <h3 class="font-bold text-xs text-slate-900 leading-tight">Tambah Kategori Baru</h3>
               <p class="text-[10px] text-slate-500">Kategori langsung aktif di kasir & katalog</p>
             </div>
           </div>
-          <button @click="showQuickAddCategoryModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+          <button @click="showQuickAddCategoryModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
         </div>
 
         <div class="flex flex-col gap-2.5">
@@ -3151,20 +3158,20 @@ onUnmounted(() => {
               v-model="quickCatName" 
               @keydown.enter.prevent="saveQuickCategory"
               placeholder="Contoh: Bumbu Dapur, Snack, Obat..." 
-              class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full bg-[#f1f3f4] border border-slate-300 rounded-none px-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
             <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Pilih Icon Emoji:</label>
-            <div class="grid grid-cols-8 gap-1 p-2 bg-[#f8f9fa] rounded-lg border border-slate-200">
+            <div class="grid grid-cols-8 gap-1 p-2 bg-[#f8f9fa] rounded-none border border-slate-200">
               <button 
                 v-for="ico in emojiOptions" 
                 :key="ico"
                 type="button"
                 @click="quickCatIcon = ico"
-                :class="quickCatIcon === ico ? 'bg-blue-600 text-white shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-800'"
-                class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-sm transition cursor-pointer"
+                :class="quickCatIcon === ico ? 'bg-blue-600 text-white' : 'bg-white hover:bg-slate-100 text-slate-800'"
+                class="w-8 h-8 rounded-none border border-slate-200 flex items-center justify-center text-sm transition cursor-pointer"
               >
                 {{ ico }}
               </button>
@@ -3173,17 +3180,17 @@ onUnmounted(() => {
         </div>
 
         <div class="flex gap-2 pt-1 border-t border-slate-200">
-          <button @click="showQuickAddCategoryModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Batal</button>
-          <button @click="saveQuickCategory" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg font-bold shadow-xs border border-blue-700 transition cursor-pointer">Simpan Kategori</button>
+          <button @click="showQuickAddCategoryModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-none font-bold border border-slate-300 transition cursor-pointer">Batal</button>
+          <button @click="saveQuickCategory" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-none font-bold border border-blue-700 transition cursor-pointer">Simpan Kategori</button>
         </div>
       </div>
     </div>
 
-    <!-- MODAL KONFIRMASI PRODUK BELUM TERDAFTAR (FLAT) -->
+    <!-- MODAL KONFIRMASI PRODUK BELUM TERDAFTAR (TRUE FLAT) -->
     <div v-if="showUnregisteredModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-60 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col shadow-xl p-4 gap-3 border border-amber-300">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col shadow-none p-4 gap-3 border-2 border-amber-400">
         <div class="flex items-center gap-2.5 border-b border-slate-200 pb-2">
-          <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-bold border border-amber-300 shadow-2xs">
+          <div class="w-9 h-9 rounded-none bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-bold border border-amber-300">
             ⚠️
           </div>
           <div>
@@ -3192,9 +3199,9 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="bg-amber-50/70 border border-amber-300 rounded-lg p-3 text-center">
+        <div class="bg-amber-50/70 border border-amber-300 rounded-none p-3 text-center">
           <span class="text-[10px] text-amber-700 font-bold block mb-1">Kode Barcode Terdeteksi:</span>
-          <div class="font-mono font-black text-base text-slate-800 tracking-wider bg-white py-1 px-3 rounded-lg border border-amber-300 inline-block shadow-2xs">
+          <div class="font-mono font-black text-base text-slate-800 tracking-wider bg-white py-1 px-3 rounded-none border border-amber-300 inline-block">
             {{ unregisteredBarcode }}
           </div>
           <p class="text-[11px] text-slate-600 mt-2 font-medium">
@@ -3203,10 +3210,10 @@ onUnmounted(() => {
         </div>
 
         <div class="flex gap-2 pt-1 border-t border-slate-200">
-          <button @click="showUnregisteredModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-lg font-bold border border-slate-300 transition cursor-pointer">
+          <button @click="showUnregisteredModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-none font-bold border border-slate-300 transition cursor-pointer">
             Batal
           </button>
-          <button @click="confirmRegisterUnregistered" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-lg font-bold shadow-xs border border-emerald-700 flex items-center justify-center gap-1 transition cursor-pointer">
+          <button @click="confirmRegisterUnregistered" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-none font-bold border border-emerald-700 flex items-center justify-center gap-1 transition cursor-pointer">
             <span>➕</span>
             <span>Daftarkan Sekarang</span>
           </button>
@@ -3214,19 +3221,19 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 4. ANDROID DIALOG 2: EDIT ITEM & MULTI-SATUAN (FLAT) -->
+    <!-- 4. ANDROID DIALOG 2: EDIT ITEM & MULTI-SATUAN (TRUE FLAT) -->
     <div v-if="showItemEditModal && editDraft" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col shadow-xl p-4 gap-3 border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col shadow-none p-4 gap-3 border-2 border-slate-400">
         <div class="flex justify-between items-center border-b border-slate-200 pb-2">
           <div class="truncate pr-2">
             <span class="text-[9px] text-blue-600 font-bold uppercase tracking-wider block">Ubah Detail Produk</span>
             <h3 class="font-bold text-sm text-slate-900 truncate">{{ cart[currentEditIndex]?.name }}</h3>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <button @click="removeItemCurrentEdit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-rose-300 transition cursor-pointer">
+            <button @click="removeItemCurrentEdit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1 rounded-none text-[11px] font-bold flex items-center gap-1 border border-rose-300 transition cursor-pointer">
               <span>🗑️</span> Hapus
             </button>
-            <button @click="showItemEditModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+            <button @click="showItemEditModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
           </div>
         </div>
 
@@ -3239,8 +3246,8 @@ onUnmounted(() => {
                 v-for="u in editDraft.availableUnits" 
                 :key="u.name"
                 @click="selectEditUnit(u)"
-                :class="editDraft.unit === u.name ? 'bg-blue-600 border-blue-700 text-white font-bold shadow-2xs' : 'bg-[#f1f3f4] border-slate-300 text-slate-700 hover:bg-slate-200'"
-                class="p-2 rounded-lg border text-center transition text-xs cursor-pointer"
+                :class="editDraft.unit === u.name ? 'bg-blue-600 border-blue-700 text-white font-bold' : 'bg-[#f1f3f4] border-slate-300 text-slate-700 hover:bg-slate-200'"
+                class="p-2 rounded-none border text-center transition text-xs cursor-pointer"
               >
                 <div class="text-[10px] leading-tight font-bold truncate">{{ u.name }}</div>
                 <div class="text-[9px] font-mono mt-0.5 opacity-90">Rp {{ u.price.toLocaleString('id-ID') }}</div>
@@ -3251,95 +3258,95 @@ onUnmounted(() => {
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-[10px] text-slate-500 block mb-0.5 font-bold uppercase">Jumlah Qty:</label>
-              <input type="text" :value="editDraft.qty" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-2 py-2 text-base text-slate-900 font-mono font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500" readonly />
+              <input type="text" :value="editDraft.qty" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-none px-2 py-2 text-base text-slate-900 font-mono font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500" readonly />
             </div>
             <div>
               <label class="text-[10px] text-slate-500 block mb-0.5 font-bold uppercase">Diskon Item (Rp):</label>
-              <input type="number" v-model="editDraft.discount" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-2 py-2 text-xs text-amber-700 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="0" />
+              <input type="number" v-model="editDraft.discount" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-none px-2 py-2 text-xs text-amber-700 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="0" />
             </div>
           </div>
 
-          <!-- Numpad Touchpad Virtual (FLAT) -->
+          <!-- Numpad Touchpad Virtual (TRUE FLAT) -->
           <div class="grid grid-cols-3 gap-1.5 font-mono pt-0.5">
-            <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="numpadPress(n)" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg text-base font-bold text-slate-800 border border-slate-300 shadow-2xs transition cursor-pointer">
+            <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="numpadPress(n)" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-none text-base font-bold text-slate-800 border border-slate-300 transition cursor-pointer">
               {{ n }}
             </button>
-            <button @click="numpadPress('C')" class="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-700 py-2.5 rounded-lg text-sm font-bold border border-rose-300 transition cursor-pointer">C</button>
-            <button @click="numpadPress('0')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-lg text-base font-bold text-slate-800 border border-slate-300 shadow-2xs transition cursor-pointer">0</button>
-            <button @click="numpadPress('DEL')" class="bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-700 py-2.5 rounded-lg text-sm font-bold border border-slate-300 flex items-center justify-center transition cursor-pointer">⌫</button>
+            <button @click="numpadPress('C')" class="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-700 py-2.5 rounded-none text-sm font-bold border border-rose-300 transition cursor-pointer">C</button>
+            <button @click="numpadPress('0')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-2.5 rounded-none text-base font-bold text-slate-800 border border-slate-300 transition cursor-pointer">0</button>
+            <button @click="numpadPress('DEL')" class="bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-700 py-2.5 rounded-none text-sm font-bold border border-slate-300 flex items-center justify-center transition cursor-pointer">⌫</button>
           </div>
         </div>
 
         <div class="flex gap-2 pt-1 border-t border-slate-200">
-          <button @click="showItemEditModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Batal</button>
-          <button @click="saveItemEdit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-lg font-bold shadow-xs border border-blue-700 transition cursor-pointer">Simpan</button>
+          <button @click="showItemEditModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-none font-bold border border-slate-300 transition cursor-pointer">Batal</button>
+          <button @click="saveItemEdit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-none font-bold border border-blue-700 transition cursor-pointer">Simpan</button>
         </div>
       </div>
     </div>
 
-    <!-- 5. ANDROID DIALOG 3: DISKON NOTA DENGAN NUMPAD (FLAT) -->
+    <!-- 5. ANDROID DIALOG 3: DISKON NOTA DENGAN NUMPAD (TRUE FLAT) -->
     <div v-if="showDiscountModal" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col shadow-xl p-4 gap-2.5 border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col shadow-none p-4 gap-2.5 border-2 border-slate-400">
         <div class="flex justify-between items-center border-b border-slate-200 pb-2">
           <div class="flex items-center gap-1.5">
             <span class="text-amber-500 text-sm">🏷️</span>
             <h3 class="font-bold text-xs text-slate-900">Potongan Diskon Nota</h3>
           </div>
-          <button @click="showDiscountModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+          <button @click="showDiscountModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
         </div>
 
         <!-- Display Potongan -->
-        <div class="bg-amber-50/60 border-2 border-amber-400 rounded-lg p-2.5 text-center">
+        <div class="bg-amber-50/60 border-2 border-amber-400 rounded-none p-2.5 text-center">
           <span class="text-[9px] text-amber-700 uppercase font-bold block">Nominal Potongan:</span>
           <div class="text-xl font-mono font-black text-amber-900">Rp {{ tempDiscountInput }}</div>
         </div>
 
-        <!-- Tombol Shortcut Diskon (FLAT) -->
+        <!-- Tombol Shortcut Diskon (TRUE FLAT) -->
         <div class="grid grid-cols-4 gap-1 font-mono text-[9px]">
-          <button @click="setDiscountShortcut('round')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-amber-800 border border-slate-300 transition cursor-pointer">Bulat</button>
-          <button @click="setDiscountShortcut('5%')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-amber-800 border border-slate-300 transition cursor-pointer">5%</button>
-          <button @click="setDiscountShortcut('10%')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-amber-800 border border-slate-300 transition cursor-pointer">10%</button>
-          <button @click="setDiscountShortcut(1000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+1rb</button>
-          <button @click="setDiscountShortcut(2000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+2rb</button>
-          <button @click="setDiscountShortcut(5000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+5rb</button>
-          <button @click="setDiscountShortcut(10000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+10rb</button>
-          <button @click="setDiscountShortcut(20000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-lg font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+20rb</button>
+          <button @click="setDiscountShortcut('round')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-amber-800 border border-slate-300 transition cursor-pointer">Bulat</button>
+          <button @click="setDiscountShortcut('5%')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-amber-800 border border-slate-300 transition cursor-pointer">5%</button>
+          <button @click="setDiscountShortcut('10%')" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-amber-800 border border-slate-300 transition cursor-pointer">10%</button>
+          <button @click="setDiscountShortcut(1000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+1rb</button>
+          <button @click="setDiscountShortcut(2000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+2rb</button>
+          <button @click="setDiscountShortcut(5000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+5rb</button>
+          <button @click="setDiscountShortcut(10000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+10rb</button>
+          <button @click="setDiscountShortcut(20000)" class="bg-[#f1f3f4] hover:bg-amber-100 py-1.5 rounded-none font-bold text-slate-700 border border-slate-300 transition cursor-pointer">+20rb</button>
         </div>
 
-        <!-- Numpad Virtual Diskon (FLAT) -->
+        <!-- Numpad Virtual Diskon (TRUE FLAT) -->
         <div class="grid grid-cols-3 gap-1 font-mono pt-0.5">
-          <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="discountNumpad(n)" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-lg text-base font-bold text-slate-800 border border-slate-300 shadow-2xs transition cursor-pointer">
+          <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" @click="discountNumpad(n)" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-none text-base font-bold text-slate-800 border border-slate-300 transition cursor-pointer">
             {{ n }}
           </button>
-          <button @click="discountNumpad('C')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 py-1.5 rounded-lg text-xs font-bold border border-rose-300 transition cursor-pointer">C</button>
-          <button @click="discountNumpad('0')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-lg text-base font-bold text-slate-800 border border-slate-300 shadow-2xs transition cursor-pointer">0</button>
-          <button @click="discountNumpad('000')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-lg text-xs font-bold text-slate-700 border border-slate-300 shadow-2xs transition cursor-pointer">000</button>
+          <button @click="discountNumpad('C')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 py-1.5 rounded-none text-xs font-bold border border-rose-300 transition cursor-pointer">C</button>
+          <button @click="discountNumpad('0')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-none text-base font-bold text-slate-800 border border-slate-300 transition cursor-pointer">0</button>
+          <button @click="discountNumpad('000')" class="bg-[#f1f3f4] hover:bg-slate-200 active:bg-slate-300 py-1.5 rounded-none text-xs font-bold text-slate-700 border border-slate-300 transition cursor-pointer">000</button>
         </div>
 
-        <!-- Alasan Diskon (FLAT) -->
+        <!-- Alasan Diskon (TRUE FLAT) -->
         <div class="flex flex-col gap-1">
           <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Alasan Diskon:</label>
           <div class="flex gap-1 overflow-x-auto text-[10px]">
-            <button v-for="r in ['Pembulatan', 'Pelanggan Tetap', 'Promo Toko']" :key="r" @click="tempDiscountNote = r" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md border border-slate-300 shrink-0 transition cursor-pointer">
+            <button v-for="r in ['Pembulatan', 'Pelanggan Tetap', 'Promo Toko']" :key="r" @click="tempDiscountNote = r" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-none border border-slate-300 shrink-0 transition cursor-pointer">
               {{ r }}
             </button>
           </div>
-          <input type="text" v-model="tempDiscountNote" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Alasan lain (opsional)..." />
+          <input type="text" v-model="tempDiscountNote" class="w-full bg-[#f1f3f4] border border-slate-300 rounded-none px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Alasan lain (opsional)..." />
         </div>
 
         <div class="flex gap-2 pt-1 border-t border-slate-200">
-          <button @click="showDiscountModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Batal</button>
-          <button @click="saveGlobalDiscount" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-xs py-2 rounded-lg font-bold shadow-xs border border-amber-700 transition cursor-pointer">Terapkan Diskon</button>
+          <button @click="showDiscountModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-none font-bold border border-slate-300 transition cursor-pointer">Batal</button>
+          <button @click="saveGlobalDiscount" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-xs py-2 rounded-none font-bold border border-amber-700 transition cursor-pointer">Terapkan Diskon</button>
         </div>
       </div>
     </div>
 
-    <!-- 6. ANDROID DIALOG 5: ANTREAN TRANSAKSI (HOLD - FLAT) -->
+    <!-- 6. ANDROID DIALOG 5: ANTREAN TRANSAKSI (HOLD - TRUE FLAT) -->
     <div v-if="showHoldModal" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-lg flex flex-col shadow-xl p-4 gap-3 border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-lg flex flex-col shadow-none p-4 gap-3 border-2 border-slate-400">
         <div class="flex justify-between items-center border-b border-slate-200 pb-2">
           <h3 class="font-bold text-xs text-slate-900 flex items-center gap-1.5">⏸️ Antrean Order Tersimpan (Hold)</h3>
-          <button @click="showHoldModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+          <button @click="showHoldModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
         </div>
 
         <div class="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
@@ -3349,7 +3356,7 @@ onUnmounted(() => {
           <div 
             v-for="(order, idx) in holdOrdersList" 
             :key="order.id"
-            class="flex items-center justify-between p-2.5 bg-[#f8f9fa] border border-slate-200 rounded-lg"
+            class="flex items-center justify-between p-2.5 bg-[#f8f9fa] border border-slate-200 rounded-none"
           >
             <div>
               <div class="text-xs font-bold text-slate-900">{{ order.name }}</div>
@@ -3358,7 +3365,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="restoreHoldOrder(idx)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-700 shadow-2xs transition cursor-pointer">
+              <button @click="restoreHoldOrder(idx)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-none border border-blue-700 transition cursor-pointer">
                 Buka
               </button>
               <button @click="holdOrdersList.splice(idx, 1)" class="text-rose-500 hover:text-rose-700 text-xs p-1 cursor-pointer">
@@ -3369,23 +3376,23 @@ onUnmounted(() => {
         </div>
 
         <div class="flex justify-end pt-2 border-t border-slate-200">
-          <button @click="showHoldModal = false" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Tutup</button>
+          <button @click="showHoldModal = false" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-4 py-2 rounded-none font-bold border border-slate-300 transition cursor-pointer">Tutup</button>
         </div>
       </div>
     </div>
 
-    <!-- 7. ANDROID RIGHT DOCK (35% LEBAR LAYAR): SCANNER BARCODE KAMERA (FLAT) -->
+    <!-- 7. ANDROID RIGHT DOCK (35% LEBAR LAYAR): SCANNER BARCODE KAMERA (TRUE FLAT) -->
     <div v-if="showScannerModal" class="fixed inset-0 z-50 flex justify-end select-none">
       <!-- Backdrop Halus di Sisi Kiri (65%) - Klik untuk Tutup -->
       <div class="flex-1 bg-black/25 backdrop-blur-2xs transition" @click="stopCameraScanner"></div>
 
       <!-- Panel Scanner di Sisi Kanan (35% Lebar Layar) -->
-      <div class="w-[35%] h-full bg-slate-900 text-white border-l border-slate-800 shadow-2xl flex flex-col justify-between p-3 z-10">
+      <div class="w-[35%] h-full bg-slate-900 text-white border-l-2 border-slate-700 shadow-none flex flex-col justify-between p-3 z-10">
         
         <!-- Header Panel Scanner: Judul, Status & Tombol Switch / Tutup di Kanan Atas -->
         <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
           <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            <span class="w-2.5 h-2.5 rounded-none bg-rose-500 animate-ping"></span>
             <div>
               <h3 class="font-bold text-xs text-white leading-tight">Scanner Barcode</h3>
               <p class="text-[9px] text-emerald-400 font-medium truncate max-w-[170px]">
@@ -3402,8 +3409,8 @@ onUnmounted(() => {
               type="button"
               :title="isTorchOn ? 'Matikan Lampu Flash' : 'Nyalakan Lampu Flash Kamera'"
               :class="[
-                'px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer border border-transparent',
-                isTorchOn ? 'bg-amber-400 text-slate-950 font-black shadow-xs border-amber-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                'px-2 py-1 rounded-none flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer border',
+                isTorchOn ? 'bg-amber-400 text-slate-950 font-black border-amber-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
               ]"
             >
               <span>🔦</span>
@@ -3415,7 +3422,7 @@ onUnmounted(() => {
               @click="playBeepSound('success')" 
               type="button"
               title="Tes Bunyi Beep Kasir"
-              class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-emerald-400 border border-slate-700 flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer"
+              class="px-2 py-1 rounded-none bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-emerald-400 border border-slate-700 flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer"
             >
               <span>🔊</span>
               <span>Tes</span>
@@ -3427,7 +3434,7 @@ onUnmounted(() => {
               @click="switchCamera" 
               type="button"
               title="Ganti Kamera"
-              class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 hover:text-white border border-slate-700 flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer"
+              class="px-2 py-1 rounded-none bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 hover:text-white border border-slate-700 flex items-center gap-1 text-[10px] font-semibold transition cursor-pointer"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               <span>Ganti</span>
@@ -3436,7 +3443,7 @@ onUnmounted(() => {
             <!-- Tombol Tutup di Kanan Atas -->
             <button 
               @click="stopCameraScanner" 
-              class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center font-bold text-xs transition cursor-pointer"
+              class="w-7 h-7 rounded-none bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center font-bold text-xs transition cursor-pointer"
             >
               ✕
             </button>
@@ -3448,31 +3455,31 @@ onUnmounted(() => {
           <div 
             @click="triggerManualFocus" 
             title="Sentuh layar video untuk memicu fokus ulang instan"
-            class="relative w-full aspect-square max-h-[290px] bg-slate-950 rounded-xl overflow-hidden border-2 border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.25)] flex items-center justify-center cursor-pointer group"
+            class="relative w-full aspect-square max-h-[290px] bg-slate-950 rounded-none overflow-hidden border-2 border-emerald-500 flex items-center justify-center cursor-pointer group"
           >
             
             <!-- Elemen Pembaca Kamera HTML5-QRCode -->
-            <div id="scanner-viewfinder" class="w-full h-full object-cover rounded-xl overflow-hidden"></div>
+            <div id="scanner-viewfinder" class="w-full h-full object-cover rounded-none overflow-hidden"></div>
 
             <!-- Efek Flash Hijau & Tanda "✓ TERDETEKSI" Saat Barcode Berhasil Discan -->
             <div 
               v-if="isScanFlashActive" 
-              class="absolute inset-0 bg-emerald-500/40 border-4 border-emerald-400 rounded-xl z-30 pointer-events-none transition-all duration-150 flex items-center justify-center shadow-[inset_0_0_30px_rgba(16,185,129,0.6)]"
+              class="absolute inset-0 bg-emerald-500/40 border-4 border-emerald-400 rounded-none z-30 pointer-events-none transition-all duration-150 flex items-center justify-center"
             >
-              <div class="px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-black tracking-wider shadow-2xl flex items-center gap-1.5 border border-emerald-300/40 animate-bounce">
+              <div class="px-3.5 py-1.5 bg-emerald-600 text-white rounded-none text-xs font-black tracking-wider flex items-center gap-1.5 border border-emerald-300 animate-bounce">
                 <span class="text-sm">✓</span>
                 <span>TERDETEKSI</span>
               </div>
             </div>
 
             <!-- Laser Line Merah Beranimasi (Sinar Pemindai) -->
-            <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 h-0.5 bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse pointer-events-none z-10"></div>
+            <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 h-0.5 bg-rose-500 animate-pulse pointer-events-none z-10"></div>
 
             <!-- Sudut Target Viewfinder -->
-            <div class="absolute top-2.5 left-2.5 w-5 h-5 border-t-3 border-l-3 border-emerald-400 pointer-events-none z-10 rounded-tl-md"></div>
-            <div class="absolute top-2.5 right-2.5 w-5 h-5 border-t-3 border-r-3 border-emerald-400 pointer-events-none z-10 rounded-tr-md"></div>
-            <div class="absolute bottom-2.5 left-2.5 w-5 h-5 border-b-3 border-l-3 border-emerald-400 pointer-events-none z-10 rounded-bl-md"></div>
-            <div class="absolute bottom-2.5 right-2.5 w-5 h-5 border-b-3 border-r-3 border-emerald-400 pointer-events-none z-10 rounded-br-md"></div>
+            <div class="absolute top-2.5 left-2.5 w-5 h-5 border-t-3 border-l-3 border-emerald-400 pointer-events-none z-10 rounded-none"></div>
+            <div class="absolute top-2.5 right-2.5 w-5 h-5 border-t-3 border-r-3 border-emerald-400 pointer-events-none z-10 rounded-none"></div>
+            <div class="absolute bottom-2.5 left-2.5 w-5 h-5 border-b-3 border-l-3 border-emerald-400 pointer-events-none z-10 rounded-none"></div>
+            <div class="absolute bottom-2.5 right-2.5 w-5 h-5 border-b-3 border-r-3 border-emerald-400 pointer-events-none z-10 rounded-none"></div>
 
             <!-- Pesan Error Kamera jika ada -->
             <div v-if="cameraError" class="absolute inset-0 bg-slate-900/95 p-4 flex flex-col items-center justify-center text-center text-white z-20">
@@ -3482,32 +3489,32 @@ onUnmounted(() => {
               <button 
                 @click="startCameraScanner(scannerTarget)" 
                 type="button"
-                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-[11px] rounded-lg border border-emerald-500 shadow transition cursor-pointer"
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-[11px] rounded-none border border-emerald-500 transition cursor-pointer"
               >
                 🔄 Coba Lagi
               </button>
             </div>
 
-            <!-- Dialog Melayang Barcode Belum Terdaftar (FLAT) -->
-            <div v-if="scannerUnregisteredBarcode" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md p-4 flex flex-col items-center justify-center text-center z-30 rounded-xl">
-              <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg mb-1">
+            <!-- Dialog Melayang Barcode Belum Terdaftar (TRUE FLAT) -->
+            <div v-if="scannerUnregisteredBarcode" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md p-4 flex flex-col items-center justify-center text-center z-30 rounded-none border-2 border-amber-400">
+              <div class="w-9 h-9 rounded-none bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg mb-1">
                 ⚠️
               </div>
               <h4 class="text-xs font-bold text-white mb-0.5">Produk Belum Terdaftar</h4>
-              <p class="text-[10px] text-slate-300 font-mono bg-slate-800 px-2.5 py-0.5 rounded-md mb-2 border border-slate-700">
+              <p class="text-[10px] text-slate-300 font-mono bg-slate-800 px-2.5 py-0.5 rounded-none mb-2 border border-slate-700">
                 {{ scannerUnregisteredBarcode }}
               </p>
               <div class="flex flex-col gap-1.5 w-full max-w-[200px]">
                 <button 
                   @click="registerFromScanner(scannerUnregisteredBarcode)" 
-                  class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2 rounded-lg border border-emerald-700 shadow-md transition flex items-center justify-center gap-1 cursor-pointer"
+                  class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2 rounded-none border border-emerald-700 transition flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <span>➕</span>
                   <span>Daftarkan Produk</span>
                 </button>
                 <button 
                   @click="scannerUnregisteredBarcode = ''" 
-                  class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
+                  class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] py-1.5 rounded-none border border-slate-700 transition cursor-pointer"
                 >
                   Abaikan & Lanjut Scan
                 </button>
@@ -3517,11 +3524,11 @@ onUnmounted(() => {
 
           <!-- Status Indikator Autofokus & Tap to Focus -->
           <div class="mt-2 text-center text-slate-400 text-[9px] flex items-center justify-center gap-1.5 select-none">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="w-1.5 h-1.5 rounded-none bg-emerald-400 animate-pulse"></span>
             <span>Autofokus Cepat Aktif • Sentuh kamera untuk fokus ulang</span>
           </div>
 
-          <!-- Input Alternatif Cepat Manual Barcode / Testing Laptop (FLAT) -->
+          <!-- Input Alternatif Cepat Manual Barcode / Testing Laptop (TRUE FLAT) -->
           <div class="w-full mt-2 shrink-0">
             <div class="relative">
               <input 
@@ -3529,12 +3536,12 @@ onUnmounted(() => {
                 @keydown.enter="submitQuickBarcode"
                 type="text" 
                 placeholder="Ketik barcode lalu tekan Enter..."
-                class="w-full bg-slate-950/90 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 pr-14 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono transition"
+                class="w-full bg-slate-950/90 border border-slate-700 focus:border-emerald-500 rounded-none px-3 py-1.5 pr-14 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono transition"
               />
               <button 
                 @click="submitQuickBarcode"
                 type="button"
-                class="absolute right-1 top-1 bottom-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-md border border-emerald-500 transition cursor-pointer flex items-center gap-0.5"
+                class="absolute right-1 top-1 bottom-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-none border border-emerald-500 transition cursor-pointer flex items-center gap-0.5"
               >
                 <span>Enter</span>
               </button>
@@ -3546,10 +3553,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Footer Panel Scanner: Hanya Notifikasi Terakhir Ter-Scan (FLAT) -->
+        <!-- Footer Panel Scanner: Hanya Notifikasi Terakhir Ter-Scan (TRUE FLAT) -->
         <div class="shrink-0 pt-2 min-h-[44px] flex items-center justify-center">
           <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform translate-y-2 opacity-0" enter-to-class="transform translate-y-0 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="transform translate-y-0 opacity-100" leave-to-class="transform translate-y-2 opacity-0">
-            <div v-if="lastScannedProduct" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2 border border-emerald-400/30 w-full">
+            <div v-if="lastScannedProduct" class="bg-emerald-600 text-white px-3 py-1.5 rounded-none flex items-center gap-2 border border-emerald-400 w-full">
               <span class="text-sm font-bold">✓</span>
               <div class="leading-tight text-left truncate flex-1">
                 <div class="text-[11px] font-bold truncate">{{ lastScannedProduct.name }}</div>
@@ -3567,15 +3574,15 @@ onUnmounted(() => {
 
     <!-- 8. ANDROID DIALOG 7: QRIS (FLAT) -->
     <div v-if="showQrisModal" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col items-center shadow-xl p-4 gap-3 border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col items-center shadow-none p-4 gap-3 border-2 border-slate-400">
         <div class="flex justify-between items-center w-full border-b border-slate-200 pb-2">
           <h3 class="font-bold text-xs text-slate-900 flex items-center gap-1.5">📱 QRIS Toko Kelontong</h3>
-          <button @click="showQrisModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+          <button @click="showQrisModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
         </div>
         
         <div class="text-center flex flex-col items-center gap-2">
           <span class="text-xs text-slate-500">Arahkan aplikasi m-banking atau e-wallet:</span>
-          <div class="bg-white p-3 rounded-xl w-44 h-44 flex flex-col items-center justify-center border-2 border-blue-500 shadow-2xs relative">
+          <div class="bg-white p-3 rounded-none w-44 h-44 flex flex-col items-center justify-center border-2 border-blue-500 relative">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ROZAK-MART-POS-TRANSACTION-MOCKUP" alt="QRIS Mockup" class="w-36 h-36" />
             <span class="absolute bottom-1 text-[8px] font-bold text-slate-500 font-mono tracking-tighter">QRIS RESMI</span>
           </div>
@@ -3586,24 +3593,24 @@ onUnmounted(() => {
         </div>
         
         <div class="grid grid-cols-3 gap-2 w-full pt-2 border-t border-slate-200">
-          <button @click="showQrisModal = false" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Batal</button>
-          <button @click="finalizeTransaction('QRIS', grandTotal, 0, false)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg font-bold shadow-xs border border-blue-700 transition cursor-pointer">Selesai</button>
-          <button @click="finalizeTransaction('QRIS', grandTotal, 0, true)" class="bg-blue-700 hover:bg-blue-800 text-white text-xs py-2 rounded-lg font-bold shadow-xs border border-blue-800 flex items-center justify-center gap-1 transition cursor-pointer">
+          <button @click="showQrisModal = false" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-none font-bold border border-slate-300 transition cursor-pointer">Batal</button>
+          <button @click="finalizeTransaction('QRIS', grandTotal, 0, false)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-none font-bold border border-blue-700 transition cursor-pointer">Selesai</button>
+          <button @click="finalizeTransaction('QRIS', grandTotal, 0, true)" class="bg-blue-700 hover:bg-blue-800 text-white text-xs py-2 rounded-none font-bold border border-blue-800 flex items-center justify-center gap-1 transition cursor-pointer">
             <span>🖨️</span> Selesai & Cetak
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 9. ANDROID DIALOG 9: PREVIEW CETAK STRUK THERMAL 80MM (FLAT) -->
+    <!-- 9. ANDROID DIALOG 9: PREVIEW CETAK STRUK THERMAL 80MM (TRUE FLAT) -->
     <div v-if="showReceiptModal && lastTransaction" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl w-full max-w-sm flex flex-col shadow-xl p-4 gap-3 max-h-[90vh] border border-slate-200">
+      <div class="bg-white rounded-none w-full max-w-sm flex flex-col shadow-none p-4 gap-3 max-h-[90vh] border-2 border-slate-400">
         <div class="flex justify-between items-center border-b border-slate-200 pb-2">
           <h3 class="font-bold text-xs text-slate-900 flex items-center gap-1.5">🖨️ Struk Belanja Pelanggan</h3>
-          <button @click="showReceiptModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+          <button @click="showReceiptModal = false" class="w-7 h-7 rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
         </div>
 
-        <div class="thermal-receipt p-4 rounded-lg text-xs overflow-y-auto max-h-[440px] border border-slate-300 shadow-inner select-text font-mono" id="printable-receipt">
+        <div class="thermal-receipt p-4 rounded-none text-xs overflow-y-auto max-h-[440px] border border-slate-300 select-text font-mono" id="printable-receipt">
           <div class="text-center font-bold text-sm tracking-widest">ROZAK MART</div>
           <div class="text-center text-[10px] leading-tight mt-0.5 text-gray-600">
             Jl. Melati No. 12, Kel. Sukamaju<br>
@@ -3667,8 +3674,8 @@ onUnmounted(() => {
         </div>
 
         <div class="flex gap-2 pt-1 border-t border-slate-200">
-          <button @click="showReceiptModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-lg font-bold border border-slate-300 transition cursor-pointer">Tutup</button>
-          <button @click="window.print()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-lg font-bold shadow-xs border border-blue-700 flex items-center justify-center gap-1.5 transition cursor-pointer">
+          <button @click="showReceiptModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-none font-bold border border-slate-300 transition cursor-pointer">Tutup</button>
+          <button @click="window.print()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-none font-bold border border-blue-700 flex items-center justify-center gap-1.5 transition cursor-pointer">
             <span>🖨️</span> Cetak Struk
           </button>
         </div>
@@ -3686,7 +3693,7 @@ onUnmounted(() => {
   object-fit: cover !important;
   width: 100% !important;
   height: 100% !important;
-  border-radius: 1.5rem !important;
+  border-radius: 0px !important;
 }
 #scanner-viewfinder img[alt="Info icon"] {
   display: none !important;
