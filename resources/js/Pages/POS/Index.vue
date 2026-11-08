@@ -91,6 +91,7 @@ const totalQty = computed(() => {
 
 // ================= KERANJANG ACTIONS =================
 function addToCart(product, unitIndex = 0, initialQty = 1) {
+  playBeepSound('scan');
   const qty = Math.max(1, parseInt(initialQty) || 1);
   const unit = product.units && product.units[unitIndex] 
     ? product.units[unitIndex] 
@@ -115,6 +116,11 @@ function addToCart(product, unitIndex = 0, initialQty = 1) {
 }
 
 function updateQty(index, delta) {
+  if (cart.value[index].qty + delta <= 0) {
+    playBeepSound('delete');
+  } else {
+    playBeepSound('qty');
+  }
   cart.value[index].qty += delta;
   if (cart.value[index].qty <= 0) {
     cart.value.splice(index, 1);
@@ -122,6 +128,7 @@ function updateQty(index, delta) {
 }
 
 function cycleItemUnit(index) {
+  playBeepSound('click');
   const item = cart.value[index];
   if (!item || !item.units || item.units.length <= 1) return;
 
@@ -134,12 +141,14 @@ function cycleItemUnit(index) {
 }
 
 function removeCartItem(index) {
+  playBeepSound('delete');
   cart.value.splice(index, 1);
 }
 
 function clearCart() {
   if (cart.value.length === 0) return;
   if (confirm('Batalkan seluruh isi pesanan saat ini?')) {
+    playBeepSound('delete');
     cart.value = [];
     globalDiscount.value = 0;
     globalDiscountNote.value = '';
@@ -228,8 +237,8 @@ function unlockAudioContext() {
   }
 }
 
-// Suara Beep Kasir Supermarket Khas (1850 Hz nada tinggi jernih & renyah)
-function playBeepSound(type = 'success') {
+// ================= SISTEM EFEK SUARA RITEL KASIR (WEB AUDIO SYNTHESIZER) =================
+function playBeepSound(type = 'scan') {
   try {
     unlockAudioContext();
     if (!sharedAudioCtx) return;
@@ -237,28 +246,121 @@ function playBeepSound(type = 'success') {
     const ctx = sharedAudioCtx;
     const now = ctx.currentTime;
 
-    if (type === 'success') {
-      // Bunyi 'Pip!' Kasir Supermarket (1850 Hz)
+    if (type === 'scan' || type === 'success') {
+      // 1. Suara Laser Barcode Scanner Kasir Supermarket (1850 Hz, Pip! 90ms)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(1850, now);
       
       gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.11);
+      osc.stop(now + 0.09);
 
-      // Getaran haptic di tablet / smartphone
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(80);
+        navigator.vibrate(70);
       }
-    } else {
-      // Bunyi Peringatan Dua Nada Rendah (Barcode Belum Terdaftar)
+    } else if (type === 'payment_success') {
+      // 2. Melodi Kasir Sukses Bayar "Cha-ching!" (Arpeggio Melodis C5-E5-G5-C6)
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach((f, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const startT = now + idx * 0.075;
+        osc.frequency.setValueAtTime(f, startT);
+        gain.gain.setValueAtTime(0.28, startT);
+        gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.22);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startT);
+        osc.stop(startT + 0.22);
+      });
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([60, 40, 100]);
+      }
+    } else if (type === 'click') {
+      // 3. Ketukan Numpad Mekanikal Halus (Tik! 35ms)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(950, now);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.035);
+
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.035);
+    } else if (type === 'qty') {
+      // 4. Soft Bubble Pop untuk tombol Tambah/Kurang Qty (Pop! 60ms)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(580, now);
+      osc.frequency.exponentialRampToValueAtTime(980, now + 0.06);
+
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.06);
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(25);
+      }
+    } else if (type === 'delete') {
+      // 5. Suara Hapus Item / Batalkan Keranjang (Low Tone Woosh)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.15);
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    } else if (type === 'hold') {
+      // 6. Suara Antrean Simpan / Muat Ulang (Slide Harmonis)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(680, now + 0.16);
+
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } else if (type === 'warning' || type === 'error') {
+      // 7. Peringatan Uang Kurang / Error ("Tet-tot" Dua Nada Rendah)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
@@ -266,20 +368,20 @@ function playBeepSound(type = 'success') {
       osc.frequency.setValueAtTime(240, now + 0.12);
 
       gain.gain.setValueAtTime(0.28, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.3);
+      osc.stop(now + 0.32);
 
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
+        navigator.vibrate([100, 60, 100]);
       }
     }
   } catch (e) {
-    console.warn('Gagal memutar audio beep:', e);
+    console.warn('Gagal memutar audio feedback:', e);
   }
 }
 
@@ -522,6 +624,7 @@ function closeCashInline() {
 }
 
 function inlineCashShortcut(val) {
+  playBeepSound('click');
   let current = parseFloat(inlineCashGiven.value.replace(/\./g, '')) || 0;
   if (val === 'exact') {
     current = grandTotal.value;
@@ -532,6 +635,7 @@ function inlineCashShortcut(val) {
 }
 
 function inlineCashNumpad(val) {
+  playBeepSound('click');
   let current = inlineCashGiven.value.replace(/\./g, '');
   if (val === 'C') {
     inlineCashGiven.value = '0';
@@ -548,6 +652,7 @@ function inlineCashNumpad(val) {
 function confirmInlineCash(autoPrint = false) {
   const rawGiven = parseFloat(inlineCashGiven.value.replace(/\./g, '')) || 0;
   if (rawGiven < grandTotal.value) {
+    playBeepSound('warning');
     alert('Uang yang diterima kurang dari total belanja!');
     return;
   }
@@ -586,6 +691,7 @@ function payKasbon() {
 }
 
 function finalizeTransaction(method, paidAmount, changeAmount, autoPrint = false) {
+  playBeepSound('payment_success');
   const payload = {
     invoice_no: invoiceNo.value,
     cashier_name: props.authCashier.name,
@@ -663,9 +769,11 @@ const holdOrdersList = ref([...props.holdOrders]);
 
 function holdCurrentTransaction() {
   if (cart.value.length === 0) {
+    playBeepSound('warning');
     alert('Keranjang belanja kosong!');
     return;
   }
+  playBeepSound('hold');
   const defaultName = `Antrean (${totalQty.value} item) - ${currentTime.value}`;
   const name = prompt('Beri nama antrean ini:', defaultName);
   if (!name) return;
@@ -697,6 +805,7 @@ function restoreHoldOrder(index) {
     if (!confirm('Keranjang saat ini masih terisi. Ganti dengan antrean terpilih?')) return;
   }
 
+  playBeepSound('hold');
   cart.value = [...(order.items || (order.data && order.data.items) || [])];
   if (order.customer) selectedCustomer.value = order.customer;
   if (order.globalDiscount) globalDiscount.value = order.globalDiscount;
@@ -988,6 +1097,7 @@ function setTargetValue(val) {
 }
 
 function universalNumpad(val) {
+  playBeepSound('click');
   const isQty = isQtyModeActive.value;
   let current = getTargetValue().replace(/\./g, '');
 
