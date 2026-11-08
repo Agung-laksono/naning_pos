@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\DebtPayment;
 use App\Models\HoldOrder;
 use App\Models\Product;
 use App\Models\Setting;
@@ -30,12 +31,28 @@ class PosController extends Controller
         $settings = Setting::pluck('value', 'key');
         $holdOrders = HoldOrder::latest()->get();
 
+        $today = now()->startOfDay();
+        $recentTransactions = Transaction::with('items')->latest()->take(60)->get();
+        $todayTransactions = Transaction::where('created_at', '>=', $today)->where('status', 'PAID')->get();
+
+        $financialSummary = [
+            'total_sales' => (int) $todayTransactions->sum('grand_total'),
+            'cash_sales' => (int) $todayTransactions->where('payment_method', 'TUNAI')->sum('grand_total'),
+            'qris_sales' => (int) $todayTransactions->where('payment_method', 'QRIS')->sum('grand_total'),
+            'kasbon_sales' => (int) $todayTransactions->where('payment_method', 'KASBON')->sum('grand_total'),
+            'transaction_count' => $todayTransactions->count(),
+            'total_profit' => (int) ($todayTransactions->sum('grand_total') - $todayTransactions->sum('total_cost')),
+            'total_receivable' => (int) Customer::sum('kasbon_balance'),
+        ];
+
         return Inertia::render('POS/Index', [
             'products' => $products,
             'customers' => $customers,
             'categories' => $categories,
             'settings' => $settings,
             'holdOrders' => $holdOrders,
+            'initialTransactions' => $recentTransactions,
+            'initialSummary' => $financialSummary,
             'authCashier' => [
                 'name' => 'Siska Anggraeni',
                 'shift' => 'Shift Pagi · Kasir Aktif',
@@ -540,5 +557,104 @@ class PosController extends Controller
         }
 
         return redirect()->back()->with('success', 'Pengaturan berhasil disimpan.');
+    }
+
+    /**
+     * Ambil Riwayat Transaksi (Filter Search, Tanggal & Metode Bayar)
+     */
+    public function getTransactions(Request $request)
+    {
+        $query = Transaction::with('items')->latest();
+
+        if ($request->filled('date')) {
+            if ($request->date === 'today') {
+                $query->whereDate('created_at', now()->today());
+            } elseif ($request->date === 'yesterday') {
+                $query->whereDate('created_at', now()->yesterday());
+            } elseif ($request->date === 'this_week') {
+                $query->where('created_at', '>=', now()->startOfWeek());
+            } elseif ($request->date === 'this_month') {
+                $query->where('created_at', '>=', now()->startOfMonth());
+            }
+        }
+
+        if ($request->filled('payment_method') && $request->payment_method !== 'ALL') {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('invoice_no', 'like', "%{$s}%")
+                  ->orWhere('customer_name', 'like', "%{$s}%")
+                  ->orWhere('cashier_name', 'like', "%{$s}%");
+            });
+        }
+
+        $transactions = $query->take(100)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'transactions' => $transactions,
+        ]);
+    }
+
+    /**
+     * Ambil Ringkasan Keuangan Kasir
+     */
+    public function getFinancialSummary(Request $request)
+    {
+        $period = $request->query('period', 'today');
+        $query = Transaction::where('status', 'PAID');
+
+        if ($period === 'today') {
+            $query->whereDate('created_at', now()->today());
+        } elseif ($period === 'this_week') {
+            $query->where('created_at', '>=', now()->startOfWeek());
+        } elseif ($period === 'this_month') {
+            $query->where('created_at', '>=', now()->startOfMonth());
+        }
+
+        $transactions = $query->get();
+
+        return response()->json([
+            'status' => 'success',
+            'summary' => [
+                'total_sales' => (int) $transactions->sum('grand_total'),
+                'cash_sales' => (int) $transactions->where('payment_method', 'TUNAI')->sum('grand_total'),
+                'qris_sales' => (int) $transactions->where('payment_method', 'QRIS')->sum('grand_total'),
+                'kasbon_sales' => (int) $transactions->where('payment_method', 'KASBON')->sum('grand_total'),
+                'transaction_count' => $transactions->count(),
+                'total_profit' => (int) ($transactions->sum('grand_total') - $transactions->sum('total_cost')),
+                'total_receivable' => (int) Customer::sum('kasbon_balance'),
+            ]
+        ]);
+    }
+
+    /**
+     * Catat Pembayaran / Pelunasan Kasbon Pelanggan
+     */
+    public function payDebt(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'payment_method' => 'required|string', // TUNAI, TRANSFER, QRIS
+            'notes' => 'nullable|string',
+        ]);
+
+        $amount = (int) $validated['amount'];
+        $newBalance = max(0, $customer->kasbon_balance - $amount);
+        $customer->update(['kasbon_balance' => $newBalance]);
+
+        DebtPayment::create([
+            'customer_id' => $customer->id,
+            'amount' => $amount,
+            'payment_method' => $validated['payment_method'],
+            'notes' => $validated['notes'] ?? 'Cicilan / Pelunasan Kasbon',
+        ]);
+
+        return redirect()->back()->with('success', "Pembayaran kasbon {$customer->name} sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat.");
     }
 }

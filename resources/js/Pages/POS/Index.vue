@@ -30,6 +30,14 @@ const props = defineProps({
   authCashier: {
     type: Object,
     default: () => ({ name: 'Siska Anggraeni', shift: 'Shift Pagi · Kasir Aktif' })
+  },
+  initialTransactions: {
+    type: Array,
+    default: () => []
+  },
+  initialSummary: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -1099,6 +1107,21 @@ function finalizeTransaction(method, paidAmount, changeAmount, autoPrint = false
   };
 
   // Simpan ke IndexedDB Offline
+  // Tambahkan langsung ke riwayat transaksi lokal
+  transactionsList.value.unshift({
+    ...payload,
+    created_at: new Date().toISOString(),
+    items: payload.items
+  });
+  reportSummary.value.total_sales += grandTotal.value;
+  reportSummary.value.transaction_count += 1;
+  if (method === 'TUNAI') reportSummary.value.cash_sales += grandTotal.value;
+  if (method === 'QRIS') reportSummary.value.qris_sales += grandTotal.value;
+  if (method === 'KASBON') {
+    reportSummary.value.kasbon_sales += grandTotal.value;
+    reportSummary.value.total_receivable += grandTotal.value;
+  }
+
   db.offline_transactions.add({
     ...payload,
     created_at: new Date().toISOString(),
@@ -1807,6 +1830,153 @@ const filteredCatalogProducts = computed(() => {
 });
 
 
+
+// ================= DRAWER RIWAYAT TRANSAKSI & LAPORAN KEUANGAN =================
+const showReportsDrawer = ref(false);
+const activeReportsTab = ref('history'); // 'history' | 'summary' | 'kasbon'
+
+const transactionsList = ref([...(props.initialTransactions || [])]);
+const reportSummary = ref({
+  total_sales: props.initialSummary?.total_sales || 0,
+  cash_sales: props.initialSummary?.cash_sales || 0,
+  qris_sales: props.initialSummary?.qris_sales || 0,
+  kasbon_sales: props.initialSummary?.kasbon_sales || 0,
+  transaction_count: props.initialSummary?.transaction_count || 0,
+  total_profit: props.initialSummary?.total_profit || 0,
+  total_receivable: props.initialSummary?.total_receivable || 0,
+});
+
+const historySearchQuery = ref('');
+const historyFilterMethod = ref('ALL'); // 'ALL' | 'TUNAI' | 'QRIS' | 'KASBON'
+const historyFilterDate = ref('today'); // 'today' | 'yesterday' | 'this_week' | 'all'
+const isHistoryLoading = ref(false);
+
+// Modal Pembayaran Kasbon
+const showPayDebtModal = ref(false);
+const debtCustomerSelected = ref(null);
+const debtPayAmount = ref(0);
+const debtPayMethod = ref('TUNAI');
+const debtPayNotes = ref('');
+
+const filteredHistoryTransactions = computed(() => {
+  return transactionsList.value.filter(trx => {
+    // Filter Metode Bayar
+    if (historyFilterMethod.value !== 'ALL' && trx.payment_method !== historyFilterMethod.value) {
+      return false;
+    }
+    // Filter Search
+    if (historySearchQuery.value.trim()) {
+      const q = historySearchQuery.value.toLowerCase().trim();
+      const matchInvoice = trx.invoice_no?.toLowerCase().includes(q);
+      const matchCustomer = trx.customer_name?.toLowerCase().includes(q);
+      const matchCashier = trx.cashier_name?.toLowerCase().includes(q);
+      if (!matchInvoice && !matchCustomer && !matchCashier) return false;
+    }
+    return true;
+  });
+});
+
+const customersWithDebt = computed(() => {
+  return localCustomers.value.filter(c => (c.kasbon_balance || 0) > 0);
+});
+
+async function openReportsDrawer() {
+  showReportsDrawer.value = true;
+  await fetchReportSummary();
+  await fetchHistoryTransactions();
+}
+
+async function fetchHistoryTransactions() {
+  isHistoryLoading.value = true;
+  try {
+    const params = new URLSearchParams();
+    if (historyFilterDate.value) params.append('date', historyFilterDate.value);
+    if (historyFilterMethod.value !== 'ALL') params.append('payment_method', historyFilterMethod.value);
+    if (historySearchQuery.value.trim()) params.append('search', historySearchQuery.value.trim());
+
+    const res = await fetch('/pos/transactions?' + params.toString());
+    const data = await res.json();
+    if (data.status === 'success') {
+      transactionsList.value = data.transactions;
+    }
+  } catch (err) {
+    console.warn('Gagal memuat riwayat transaksi:', err);
+  } finally {
+    isHistoryLoading.value = false;
+  }
+}
+
+async function fetchReportSummary() {
+  try {
+    const res = await fetch('/pos/reports/summary?period=today');
+    const data = await res.json();
+    if (data.status === 'success') {
+      reportSummary.value = data.summary;
+    }
+  } catch (err) {
+    console.warn('Gagal memuat ringkasan keuangan:', err);
+  }
+}
+
+function reprintReceipt(trx) {
+  lastTransaction.value = {
+    invoice_no: trx.invoice_no,
+    cashier_name: trx.cashier_name,
+    customer_name: trx.customer_name,
+    subtotal: trx.subtotal,
+    item_discount: trx.item_discount || 0,
+    global_discount: trx.global_discount || 0,
+    global_discount_note: trx.global_discount_note || '',
+    grand_total: trx.grand_total,
+    payment_method: trx.payment_method,
+    paid_amount: trx.paid_amount,
+    change_amount: trx.change_amount,
+    created_at: new Date(trx.created_at).toLocaleDateString('id-ID') + ' ' + new Date(trx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    items: (trx.items || []).map(it => ({
+      product_name: it.product_name,
+      qty: it.qty,
+      unit_name: it.unit_name,
+      unit_price: it.unit_price,
+      total: it.total
+    }))
+  };
+  showReceiptModal.value = true;
+  playBeepSound('success');
+}
+
+function openPayDebtModal(cust) {
+  debtCustomerSelected.value = cust;
+  debtPayAmount.value = cust.kasbon_balance || 0;
+  debtPayMethod.value = 'TUNAI';
+  debtPayNotes.value = 'Pelunasan Kasbon ' + cust.name;
+  showPayDebtModal.value = true;
+}
+
+function submitPayDebt() {
+  if (!debtCustomerSelected.value || debtPayAmount.value <= 0) {
+    alert('Nominal pembayaran kasbon tidak valid!');
+    return;
+  }
+
+  router.post('/pos/customers/' + debtCustomerSelected.value.id + '/pay-debt', {
+    amount: debtPayAmount.value,
+    payment_method: debtPayMethod.value,
+    notes: debtPayNotes.value
+  }, {
+    preserveScroll: true,
+    preserveState: true,
+    onSuccess: () => {
+      const idx = localCustomers.value.findIndex(c => c.id === debtCustomerSelected.value.id);
+      if (idx !== -1) {
+        localCustomers.value[idx].kasbon_balance = Math.max(0, localCustomers.value[idx].kasbon_balance - debtPayAmount.value);
+      }
+      showPayDebtModal.value = false;
+      playBeepSound('payment_success');
+      fetchReportSummary();
+    }
+  });
+}
+
 // ================= MASTER SETTINGS MODAL (MULTI-TAB) =================
 const showSettingsModal = ref(false);
 const activeSettingsTab = ref('profile'); // 'profile' | 'payment' | 'printer' | 'features' | 'data'
@@ -2174,6 +2344,17 @@ onUnmounted(() => {
             class="ml-1 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200 flex items-center justify-center text-xs font-bold transition cursor-pointer shadow-2xs"
           >
             ⚙️
+          </button>
+          
+          <!-- Tombol Buka Riwayat Transaksi & Laporan Keuangan -->
+          <button 
+            type="button" 
+            @click="openReportsDrawer" 
+            title="Lihat Riwayat Struk & Rekap Keuangan Hari Ini" 
+            class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-blue-200 transition cursor-pointer shadow-2xs ml-0.5"
+          >
+            <span>📊</span>
+            <span>Riwayat & Laporan</span>
           </button>
         </div>
 
@@ -4458,6 +4639,397 @@ onUnmounted(() => {
           </div>
         </div>
 
+      </div>
+    </div>
+
+
+    <!-- ================================================================
+         11. DRAWER RIWAYAT TRANSAKSI & LAPORAN KEUANGAN (MODERN FLAT)
+         Tab 1: 📜 Riwayat Nota Transaksi (Cari, Filter, Cetak Ulang)
+         Tab 2: 💰 Rekap Keuangan Hari Ini (Omzet, Tunai, QRIS, Kasbon)
+         Tab 3: 👥 Buku Kasbon Pelanggan (Catat Bayar / Pelunasan)
+    ================================================================= -->
+    <div v-if="showReportsDrawer" class="fixed inset-0 z-[70] flex items-stretch justify-end select-none">
+      <!-- Backdrop klik untuk tutup -->
+      <div class="flex-1 bg-black/40 backdrop-blur-2xs transition" @click="showReportsDrawer = false"></div>
+
+      <!-- Panel Drawer (46% Lebar Layar) -->
+      <div class="w-[46%] max-w-full h-full bg-white flex flex-col border-l border-slate-200 shadow-2xl z-10 overflow-hidden">
+        
+        <!-- Header Drawer -->
+        <div class="bg-white px-5 py-3.5 border-b border-slate-200 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+              📊
+            </div>
+            <div>
+              <h3 class="font-bold text-xs text-slate-900 uppercase tracking-wide">Riwayat Transaksi & Rekap Kasir</h3>
+              <p class="text-[10px] text-slate-500 font-medium">Rozak Mart · Rekapitulasi Pembayaran Realtime</p>
+            </div>
+          </div>
+          <button @click="showReportsDrawer = false" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <!-- Segmented Tab Navigasi Drawer -->
+        <div class="bg-slate-50 p-2 border-b border-slate-200 shrink-0 flex items-center gap-1.5">
+          <button 
+            type="button" 
+            @click="activeReportsTab = 'history'" 
+            :class="activeReportsTab === 'history' ? 'bg-white text-blue-700 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:text-slate-900 font-medium'"
+            class="flex-1 py-1.5 px-2 rounded-xl text-xs transition flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>📜</span>
+            <span>Riwayat Nota</span>
+          </button>
+          <button 
+            type="button" 
+            @click="activeReportsTab = 'summary'" 
+            :class="activeReportsTab === 'summary' ? 'bg-white text-emerald-700 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:text-slate-900 font-medium'"
+            class="flex-1 py-1.5 px-2 rounded-xl text-xs transition flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>💰</span>
+            <span>Rekap Keuangan</span>
+          </button>
+          <button 
+            type="button" 
+            @click="activeReportsTab = 'kasbon'" 
+            :class="activeReportsTab === 'kasbon' ? 'bg-white text-amber-700 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:text-slate-900 font-medium'"
+            class="flex-1 py-1.5 px-2 rounded-xl text-xs transition flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <span>👥</span>
+            <span>Buku Kasbon</span>
+            <span v-if="customersWithDebt.length > 0" class="bg-amber-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">
+              {{ customersWithDebt.length }}
+            </span>
+          </button>
+        </div>
+
+        <!-- ═══ TAB 1: RIWAYAT NOTA TRANSAKSI ═══ -->
+        <div v-if="activeReportsTab === 'history'" class="flex-1 flex flex-col overflow-hidden">
+          
+          <!-- Filter & Search Bar Riwayat -->
+          <div class="p-3 border-b border-slate-200 bg-white flex flex-col gap-2 shrink-0">
+            <div class="relative">
+              <input 
+                type="text" 
+                v-model="historySearchQuery" 
+                @input="fetchHistoryTransactions"
+                placeholder="Cari nomor invoice (TRX-), nama pembeli..." 
+                class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 font-medium focus:bg-white focus:border-blue-500 focus:outline-none transition"
+              />
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+            </div>
+
+            <div class="flex items-center justify-between gap-1 text-[10px]">
+              <!-- Filter Periode Tanggal -->
+              <div class="flex items-center gap-1">
+                <button 
+                  v-for="d in [{ id: 'today', l: 'Hari Ini' }, { id: 'yesterday', l: 'Kemarin' }, { id: 'this_week', l: 'Minggu Ini' }, { id: 'all', l: 'Semua' }]" 
+                  :key="d.id"
+                  @click="historyFilterDate = d.id; fetchHistoryTransactions()"
+                  :class="historyFilterDate === d.id ? 'bg-slate-800 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'"
+                  class="px-2 py-1 rounded-lg transition cursor-pointer"
+                >
+                  {{ d.l }}
+                </button>
+              </div>
+
+              <!-- Filter Metode Bayar -->
+              <div class="flex items-center gap-1">
+                <button 
+                  v-for="m in ['ALL', 'TUNAI', 'QRIS', 'KASBON']" 
+                  :key="m"
+                  @click="historyFilterMethod = m"
+                  :class="historyFilterMethod === m ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'"
+                  class="px-2 py-1 rounded-lg transition cursor-pointer uppercase font-mono"
+                >
+                  {{ m === 'ALL' ? 'Semua' : m }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- List Kartu Riwayat Transaksi -->
+          <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5">
+            <div v-if="filteredHistoryTransactions.length === 0" class="text-center py-12 text-slate-400 text-xs flex flex-col items-center gap-2">
+              <span class="text-3xl">📜</span>
+              <span>Belum ada transaksi pada kriteria filter ini.</span>
+            </div>
+
+            <div 
+              v-for="trx in filteredHistoryTransactions" 
+              :key="trx.id || trx.invoice_no"
+              class="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs hover:border-blue-400 transition flex flex-col gap-2"
+            >
+              <!-- Baris Atas: Invoice, Jam & Metode Bayar -->
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono font-black text-xs text-slate-900">{{ trx.invoice_no }}</span>
+                  <span 
+                    :class="trx.payment_method === 'TUNAI' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (trx.payment_method === 'QRIS' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200')"
+                    class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border uppercase"
+                  >
+                    {{ trx.payment_method }}
+                  </span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">
+                  {{ new Date(trx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }}
+                </span>
+              </div>
+
+              <!-- Baris Tengah: Info Pembeli & Rincian Item -->
+              <div class="flex justify-between items-start text-xs">
+                <div>
+                  <div class="text-[11px] font-bold text-slate-800">{{ trx.customer_name }}</div>
+                  <div class="text-[10px] text-slate-500 mt-0.5">
+                    Kasir: {{ trx.cashier_name }} · {{ (trx.items || []).length }} macam barang
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="font-mono font-black text-sm text-slate-900">
+                    Rp {{ Number(trx.grand_total).toLocaleString('id-ID') }}
+                  </div>
+                  <div v-if="trx.global_discount > 0" class="text-[9px] text-amber-600 font-medium">
+                    Disc -Rp {{ Number(trx.global_discount).toLocaleString('id-ID') }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Baris Bawah: Tombol Cetak Ulang Struk -->
+              <div class="flex justify-between items-center pt-1.5 border-t border-slate-100 mt-0.5">
+                <span class="text-[9px] text-slate-400 font-mono truncate max-w-[220px]">
+                  {{ (trx.items || []).map(i => i.product_name + ' (' + i.qty + ')').join(', ') }}
+                </span>
+                <button 
+                  type="button" 
+                  @click="reprintReceipt(trx)" 
+                  class="bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-[10px] font-bold px-3 py-1 rounded-lg border border-slate-200 transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                >
+                  <span>🖨️</span>
+                  <span>Cetak Ulang</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ═══ TAB 2: REKAP KEUANGAN KASIR HARI INI ═══ -->
+        <div v-else-if="activeReportsTab === 'summary'" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
+          
+          <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+            <div>
+              <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Rekapitulasi Penjualan Hari Ini</h4>
+              <p class="text-[10px] text-slate-500">Total pendapatan & rincian uang masuk laci kasir</p>
+            </div>
+            <button @click="fetchReportSummary" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1 font-bold cursor-pointer">
+              <span>🔄</span> Refresh
+            </button>
+          </div>
+
+          <!-- Total Omzet Banner -->
+          <div class="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 flex items-center justify-between shadow-xs">
+            <div>
+              <span class="text-[10px] text-slate-400 uppercase font-bold tracking-widest block mb-0.5">TOTAL OMZET PENJUALAN</span>
+              <div class="text-2xl font-mono font-black text-emerald-400">
+                Rp {{ reportSummary.total_sales.toLocaleString('id-ID') }}
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 block font-medium">Total Struk:</span>
+              <span class="font-mono font-black text-lg text-white">{{ reportSummary.transaction_count }} Nota</span>
+            </div>
+          </div>
+
+          <!-- Rincian Metode Pembayaran (Paling Krusial Saat Tutup Kasir) -->
+          <div class="flex flex-col gap-2">
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Rincian Fisik Uang Kasir:</span>
+
+            <!-- Uang Tunai di Laci -->
+            <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shadow-2xs">💵</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-950">Uang Tunai di Laci Kasir</div>
+                  <div class="text-[10px] text-emerald-700">Fisik uang cash yang diterima kasir</div>
+                </div>
+              </div>
+              <span class="font-mono font-black text-base text-emerald-700">
+                Rp {{ reportSummary.cash_sales.toLocaleString('id-ID') }}
+              </span>
+            </div>
+
+            <!-- Uang Masuk QRIS -->
+            <div class="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-2xs">📱</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-950">Pembayaran QRIS / Digital</div>
+                  <div class="text-[10px] text-blue-700">Uang masuk rekening / e-wallet toko</div>
+                </div>
+              </div>
+              <span class="font-mono font-black text-base text-blue-700">
+                Rp {{ reportSummary.qris_sales.toLocaleString('id-ID') }}
+              </span>
+            </div>
+
+            <!-- Kasbon / Piutang Belanja Baru -->
+            <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center text-sm font-bold shadow-2xs">📝</span>
+                <div>
+                  <div class="text-xs font-bold text-amber-950">Transaksi Kasbon Baru</div>
+                  <div class="text-[10px] text-amber-700">Belanjaan yang dicatat sebagai utang hari ini</div>
+                </div>
+              </div>
+              <span class="font-mono font-black text-base text-amber-700">
+                Rp {{ reportSummary.kasbon_sales.toLocaleString('id-ID') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Laba Kotor & Total Piutang Toko -->
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Estimasi Laba Kotor:</span>
+              <span class="font-mono font-black text-sm text-slate-900">
+                Rp {{ reportSummary.total_profit.toLocaleString('id-ID') }}
+              </span>
+            </div>
+
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Total Semua Kasbon Toko:</span>
+              <span class="font-mono font-black text-sm text-amber-700">
+                Rp {{ reportSummary.total_receivable.toLocaleString('id-ID') }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ═══ TAB 3: BUKU KASBON PELANGGAN ═══ -->
+        <div v-else-if="activeReportsTab === 'kasbon'" class="flex-1 flex flex-col overflow-hidden">
+          
+          <div class="p-3 bg-amber-50/70 border-b border-amber-200 flex justify-between items-center shrink-0">
+            <div>
+              <span class="text-[10px] text-amber-800 font-bold uppercase block">TOTAL SELURUH PIUTANG KASBON:</span>
+              <div class="font-mono font-black text-base text-amber-950">
+                Rp {{ reportSummary.total_receivable.toLocaleString('id-ID') }}
+              </div>
+            </div>
+            <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-1 rounded-lg font-bold">
+              {{ customersWithDebt.length }} Orang Berutang
+            </span>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+            <div v-if="customersWithDebt.length === 0" class="text-center py-12 text-slate-400 text-xs flex flex-col items-center gap-2">
+              <span class="text-3xl">🎉</span>
+              <span>Luar biasa! Tidak ada pelanggan yang memiliki tunggakan kasbon.</span>
+            </div>
+
+            <div 
+              v-for="c in customersWithDebt" 
+              :key="c.id"
+              class="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between"
+            >
+              <div>
+                <div class="text-xs font-black text-slate-900">{{ c.name }}</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">
+                  Telp: {{ c.phone || '-' }} · Alamat: {{ c.address || '-' }}
+                </div>
+                <div class="text-[9px] text-slate-400 mt-0.5">
+                  Plafon Limit: Rp {{ (c.credit_limit || 500000).toLocaleString('id-ID') }}
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-1.5 shrink-0">
+                <span class="font-mono font-black text-xs text-amber-700">
+                  Rp {{ (c.kasbon_balance || 0).toLocaleString('id-ID') }}
+                </span>
+                <button 
+                  type="button" 
+                  @click="openPayDebtModal(c)" 
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer shadow-xs flex items-center gap-1"
+                >
+                  <span>💵</span>
+                  <span>Catat Bayar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL CATAT PEMBAYARAN / PELUNASAN KASBON -->
+    <div v-if="showPayDebtModal && debtCustomerSelected" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-[85] flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col shadow-2xl p-5 gap-3 border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+          <div>
+            <h3 class="font-bold text-xs text-slate-900">Catat Pelunasan Kasbon</h3>
+            <p class="text-[10px] text-slate-500">Pelanggan: <strong class="text-slate-800">{{ debtCustomerSelected.name }}</strong></p>
+          </div>
+          <button @click="showPayDebtModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center">
+          <span class="text-[10px] text-amber-800 font-bold uppercase">Sisa Kasbon Saat Ini:</span>
+          <span class="font-mono font-black text-amber-900 text-sm">
+            Rp {{ (debtCustomerSelected.kasbon_balance || 0).toLocaleString('id-ID') }}
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-2.5">
+          <div>
+            <label class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Nominal yang Dibayarkan (Rp):</label>
+            <input 
+              type="number" 
+              v-model="debtPayAmount" 
+              placeholder="0" 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono font-black text-emerald-700 focus:bg-white focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Metode Penerimaan Uang:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button 
+                type="button" 
+                @click="debtPayMethod = 'TUNAI'" 
+                :class="debtPayMethod === 'TUNAI' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 text-slate-700'"
+                class="py-1.5 rounded-lg text-xs transition"
+              >
+                💵 Tunai (Cash)
+              </button>
+              <button 
+                type="button" 
+                @click="debtPayMethod = 'TRANSFER'" 
+                :class="debtPayMethod === 'TRANSFER' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-100 text-slate-700'"
+                class="py-1.5 rounded-lg text-xs transition"
+              >
+                🏦 Transfer / QRIS
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Catatan Keterangan:</label>
+            <input 
+              type="text" 
+              v-model="debtPayNotes" 
+              placeholder="Cicilan ke-1 / Lunas..." 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2 border-t border-slate-200">
+          <button @click="showPayDebtModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
+          <button @click="submitPayDebt" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-xl font-bold border border-emerald-600 transition cursor-pointer shadow-xs">Simpan Pembayaran</button>
+        </div>
       </div>
     </div>
 

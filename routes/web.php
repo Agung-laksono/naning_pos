@@ -24,6 +24,10 @@ Route::post('/pos/qris/generate', [PosController::class, 'generateQris'])->name(
 Route::get('/pos/qris/check/{orderId}', [PosController::class, 'checkQrisStatus'])->name('pos.qris.check');
 Route::post('/pos/settings', [PosController::class, 'updateSettings'])->name('pos.settings.update');
 
+Route::get('/pos/transactions', [PosController::class, 'getTransactions'])->name('pos.transactions.list');
+Route::get('/pos/reports/summary', [PosController::class, 'getFinancialSummary'])->name('pos.reports.summary');
+Route::post('/pos/customers/{id}/pay-debt', [PosController::class, 'payDebt'])->name('pos.customers.payDebt');
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
