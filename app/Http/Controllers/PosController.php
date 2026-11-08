@@ -260,4 +260,155 @@ class PosController extends Controller
 
         return redirect()->back()->with('success', 'Antrean berhasil dipulihkan.');
     }
+
+    /**
+     * Update Data Produk & Satuan
+     */
+    public function updateProduct(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $validated = $request->validate([
+            'barcode' => 'required|string|unique:products,barcode,' . $product->id,
+            'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'category' => 'nullable|string',
+            'icon' => 'nullable|string',
+            'price' => 'nullable|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
+            'stock' => 'nullable|integer|min:0',
+            'units' => 'nullable|array',
+            'units.*.name' => 'required_with:units|string',
+            'units.*.price' => 'required_with:units|numeric',
+            'units.*.ratio' => 'nullable|integer',
+            'units.*.is_base' => 'nullable|boolean',
+        ]);
+
+        $categoryId = $validated['category_id'] ?? null;
+        if (!$categoryId && !empty($validated['category'])) {
+            $cat = Category::firstOrCreate(
+                ['name' => $validated['category']],
+                ['icon' => $validated['icon'] ?? '📦']
+            );
+            $categoryId = $cat->id;
+        }
+
+        $baseUnit = $product->base_unit;
+        if (!empty($validated['units']) && is_array($validated['units'])) {
+            $baseUnit = $validated['units'][0]['name'] ?? $baseUnit;
+        }
+
+        $product->update([
+            'barcode' => $validated['barcode'],
+            'name' => $validated['name'],
+            'category_id' => $categoryId ?? $product->category_id,
+            'icon' => $validated['icon'] ?? $product->icon,
+            'base_unit' => $baseUnit,
+            'cost_price' => $validated['cost_price'] ?? $product->cost_price,
+            'stock' => $validated['stock'] ?? $product->stock,
+        ]);
+
+        // Sinkronisasi Multi-Satuan
+        if (!empty($validated['units']) && is_array($validated['units'])) {
+            $product->units()->delete();
+            foreach ($validated['units'] as $idx => $u) {
+                $product->units()->create([
+                    'name' => $u['name'],
+                    'price' => $u['price'],
+                    'ratio' => $u['ratio'] ?? 1,
+                    'is_base' => $u['is_base'] ?? ($idx === 0),
+                ]);
+            }
+        } elseif (isset($validated['price'])) {
+            $baseUnitObj = $product->units()->where('is_base', true)->first();
+            if ($baseUnitObj) {
+                $baseUnitObj->update(['price' => $validated['price']]);
+            } else {
+                $product->units()->create([
+                    'name' => $product->base_unit ?? 'Pcs',
+                    'price' => $validated['price'],
+                    'ratio' => 1,
+                    'is_base' => true,
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Data produk berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus Produk
+     */
+    public function deleteProduct($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->units()->delete();
+        $product->delete();
+
+        return redirect()->back()->with('success', 'Produk berhasil dihapus dari katalog.');
+    }
+
+    /**
+     * Tambah Pelanggan / Member Baru
+     */
+    public function storeCustomer(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'credit_limit' => 'nullable|numeric|min:0',
+        ]);
+
+        $customer = Customer::create([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? '-',
+            'address' => $validated['address'] ?? '-',
+            'credit_limit' => $validated['credit_limit'] ?? 500000,
+            'kasbon_balance' => 0,
+        ]);
+
+        return redirect()->back()->with([
+            'success' => 'Pelanggan baru berhasil didaftarkan.',
+            'customer' => $customer,
+        ]);
+    }
+
+    /**
+     * Update Data Pelanggan
+     */
+    public function updateCustomer(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'credit_limit' => 'nullable|numeric|min:0',
+        ]);
+
+        $customer->update($validated);
+
+        return redirect()->back()->with('success', 'Data pelanggan berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus Pelanggan
+     */
+    public function deleteCustomer($id)
+    {
+        if ($id == 1) {
+            return redirect()->back()->with('error', 'Pelanggan Umum tidak boleh dihapus.');
+        }
+
+        $customer = Customer::findOrFail($id);
+        if ($customer->kasbon_balance > 0) {
+            return redirect()->back()->with('error', 'Pelanggan masih memiliki catatan kasbon. Lunasi kasbon sebelum menghapus.');
+        }
+
+        $customer->delete();
+
+        return redirect()->back()->with('success', 'Pelanggan berhasil dihapus.');
+    }
 }

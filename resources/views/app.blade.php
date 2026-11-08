@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-        <title inertia>{{ config('app.name', 'TPKmart POS') }} - Naning POS</title>
+        <title inertia>{{ config('app.name', 'Rozak Mart') }}</title>
 
         <!-- PWA Web App Manifest & Standalone Fullscreen Meta Tags -->
         <link rel="manifest" href="/manifest.json">
@@ -12,7 +12,7 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="Naning POS">
+        <meta name="apple-mobile-web-app-title" content="Rozak Mart">
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
         <script>

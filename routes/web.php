@@ -10,6 +10,12 @@ Route::get('/', [PosController::class, 'index'])->name('pos.home');
 Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
 Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
 Route::post('/pos/products', [PosController::class, 'storeProduct'])->name('pos.products.store');
+Route::put('/pos/products/{id}', [PosController::class, 'updateProduct'])->name('pos.products.update');
+Route::delete('/pos/products/{id}', [PosController::class, 'deleteProduct'])->name('pos.products.delete');
+
+Route::post('/pos/customers', [PosController::class, 'storeCustomer'])->name('pos.customers.store');
+Route::put('/pos/customers/{id}', [PosController::class, 'updateCustomer'])->name('pos.customers.update');
+Route::delete('/pos/customers/{id}', [PosController::class, 'deleteCustomer'])->name('pos.customers.delete');
 Route::post('/pos/categories', [PosController::class, 'storeCategory'])->name('pos.categories.store');
 Route::post('/pos/hold-orders', [PosController::class, 'storeHoldOrder'])->name('pos.hold.store');
 Route::delete('/pos/hold-orders/{id}', [PosController::class, 'deleteHoldOrder'])->name('pos.hold.delete');

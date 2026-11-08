@@ -288,6 +288,69 @@ function handleClickOutsideSearch(event) {
   }
 }
 
+// ================= VOICE SEARCH (PENCARIAN SUARA BAHASA INDONESIA) =================
+const isVoiceListening = ref(false);
+const isVoiceSupported = ref(false);
+let speechRecognitionInstance = null;
+
+function initVoiceSearch() {
+  if (typeof window !== 'undefined') {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      isVoiceSupported.value = true;
+      try {
+        speechRecognitionInstance = new SpeechRecognition();
+        speechRecognitionInstance.continuous = false;
+        speechRecognitionInstance.interimResults = false;
+        speechRecognitionInstance.lang = 'id-ID'; // Bahasa Indonesia
+
+        speechRecognitionInstance.onstart = () => {
+          isVoiceListening.value = true;
+          playBeepSound('click');
+        };
+
+        speechRecognitionInstance.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript) {
+            searchQuery.value = transcript.trim();
+            onSearchInput();
+            handleSearchSubmit();
+          }
+        };
+
+        speechRecognitionInstance.onerror = (event) => {
+          console.warn('Voice recognition error:', event.error);
+          isVoiceListening.value = false;
+        };
+
+        speechRecognitionInstance.onend = () => {
+          isVoiceListening.value = false;
+        };
+      } catch (e) {
+        console.warn('Failed to init SpeechRecognition:', e);
+      }
+    }
+  }
+}
+
+function toggleVoiceSearch() {
+  if (!isVoiceSupported.value) {
+    alert('Pencarian suara belum didukung di browser ini. Gunakan Google Chrome di tablet atau laptop.');
+    return;
+  }
+
+  if (isVoiceListening.value) {
+    speechRecognitionInstance?.stop();
+    isVoiceListening.value = false;
+  } else {
+    try {
+      speechRecognitionInstance?.start();
+    } catch (e) {
+      console.warn('Voice start error:', e);
+    }
+  }
+}
+
 // ================= GLOBAL HARDWARE SCANNER LISTENER (USB / BLUETOOTH / WIRELESS GUN) =================
 let hardwareBarcodeBuffer = '';
 let lastHardwareKeyTime = 0;
@@ -563,7 +626,7 @@ function applyCameraOptimizations() {
       track.applyConstraints({
         advanced: [advanced]
       }).then(() => {
-        console.log('Naning POS: Hardware Continuous Autofocus aktif.');
+        console.log('Rozak Mart: Hardware Continuous Autofocus aktif.');
       }).catch(err => {
         console.warn('Gagal kunci autofocus:', err);
       });
@@ -1378,7 +1441,10 @@ function removeExtraUnit(index) {
   }
 }
 
+const editingProductId = ref(null);
+
 function openAddProductModal(prefill = '') {
+  editingProductId.value = null;
   activeNumpadTarget.value = 'base_price';
   newProd.value = {
     name: '',
@@ -1386,6 +1452,8 @@ function openAddProductModal(prefill = '') {
     unit: 'Pcs',
     category: localCategories.value[0]?.name || 'Sembako',
     price: '',
+    cost_price: '',
+    stock: 100,
     autoAdd: true,
     autoAddQty: 1,
     enableMultiUnit: false,
@@ -1401,6 +1469,50 @@ function openAddProductModal(prefill = '') {
   }
 
   showAddProductModal.value = true;
+}
+
+function openEditProductModal(product) {
+  editingProductId.value = product.id;
+  activeNumpadTarget.value = 'base_price';
+
+  const baseUnit = (product.units && product.units.find(u => u.is_base)) || 
+                   (product.units && product.units[0]) || 
+                   { name: product.base_unit || 'Pcs', price: product.price || 0 };
+  const extraUnits = (product.units && product.units.filter(u => u !== baseUnit && !u.is_base)) || [];
+
+  newProd.value = {
+    name: product.name,
+    barcode: product.barcode || '',
+    unit: baseUnit.name,
+    category: getProductCategoryName(product),
+    price: baseUnit.price,
+    cost_price: product.cost_price || '',
+    stock: product.stock !== undefined ? product.stock : 100,
+    autoAdd: false,
+    autoAddQty: 1,
+    enableMultiUnit: extraUnits.length > 0,
+    extraUnits: extraUnits.map(eu => ({ name: eu.name, price: eu.price, ratio: eu.ratio || 1 }))
+  };
+
+  showAddProductModal.value = true;
+}
+
+function deleteCurrentProduct() {
+  if (!editingProductId.value) return;
+  const prod = localProducts.value.find(p => p.id === editingProductId.value);
+  if (!prod) return;
+
+  if (!confirm(`Hapus produk "${prod.name}" secara permanen dari katalog toko?`)) return;
+
+  playBeepSound('delete');
+  router.delete('/pos/products/' + editingProductId.value, {
+    preserveScroll: true,
+    onSuccess: () => {
+      localProducts.value = localProducts.value.filter(p => p.id !== editingProductId.value);
+      showAddProductModal.value = false;
+      editingProductId.value = null;
+    }
+  });
 }
 
 function saveNewProduct() {
@@ -1446,13 +1558,49 @@ function saveNewProduct() {
     });
   }
 
+  // JIKA MODE EDIT PRODUK YANG SUDAH ADA
+  if (editingProductId.value) {
+    const payload = {
+      barcode: barcodeVal,
+      name: newProd.value.name.trim(),
+      category: newProd.value.category,
+      icon: getCategoryIcon(newProd.value.category),
+      unit_name: allUnits[0].name,
+      price: allUnits[0].price,
+      cost_price: parseFloat(newProd.value.cost_price) || 0,
+      stock: parseInt(newProd.value.stock) || 0,
+      units: allUnits
+    };
+
+    router.put('/pos/products/' + editingProductId.value, payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        const idx = localProducts.value.findIndex(p => p.id === editingProductId.value);
+        if (idx !== -1) {
+          localProducts.value[idx] = {
+            ...localProducts.value[idx],
+            ...payload,
+            units: allUnits
+          };
+        }
+        showAddProductModal.value = false;
+        editingProductId.value = null;
+        playBeepSound('success');
+      }
+    });
+    return;
+  }
+
+  // JIKA MODE TAMBAH PRODUK BARU
   const createdProd = {
     id: Date.now(),
     barcode: barcodeVal,
     name: newProd.value.name.trim(),
     category: newProd.value.category,
     icon: getCategoryIcon(newProd.value.category),
-    units: allUnits
+    units: allUnits,
+    cost_price: parseFloat(newProd.value.cost_price) || 0,
+    stock: parseInt(newProd.value.stock) || 100
   };
 
   localProducts.value.unshift(createdProd);
@@ -1466,6 +1614,8 @@ function saveNewProduct() {
       icon: createdProd.icon,
       unit_name: allUnits[0].name,
       price: allUnits[0].price,
+      cost_price: createdProd.cost_price,
+      stock: createdProd.stock,
       units: allUnits,
     }, { preserveScroll: true, preserveState: true });
   }
@@ -1559,6 +1709,109 @@ function selectCustomer(cust) {
   showCustomerModal.value = false;
 }
 
+// ================= MANAJEMEN PELANGGAN / MEMBER =================
+const showAddCustomerModal = ref(false);
+const editingCustomer = ref(null);
+const customerForm = ref({
+  name: '',
+  phone: '',
+  address: '',
+  credit_limit: 500000
+});
+
+function openAddCustomerModal() {
+  editingCustomer.value = null;
+  customerForm.value = {
+    name: '',
+    phone: '',
+    address: '',
+    credit_limit: 500000
+  };
+  showAddCustomerModal.value = true;
+}
+
+function openEditCustomerModal(cust) {
+  editingCustomer.value = cust;
+  customerForm.value = {
+    name: cust.name,
+    phone: cust.phone !== '-' ? (cust.phone || '') : '',
+    address: cust.address !== '-' ? (cust.address || '') : '',
+    credit_limit: cust.credit_limit || 500000
+  };
+  showAddCustomerModal.value = true;
+}
+
+function saveCustomer() {
+  if (!customerForm.value.name.trim()) {
+    playBeepSound('warning');
+    alert('Nama pelanggan wajib diisi!');
+    return;
+  }
+
+  playBeepSound('click');
+  if (editingCustomer.value) {
+    // Mode Update Pelanggan
+    router.put('/pos/customers/' + editingCustomer.value.id, customerForm.value, {
+      preserveScroll: true,
+      onSuccess: () => {
+        const idx = localCustomers.value.findIndex(c => c.id === editingCustomer.value.id);
+        if (idx !== -1) {
+          localCustomers.value[idx] = { ...localCustomers.value[idx], ...customerForm.value };
+          if (selectedCustomer.value?.id === editingCustomer.value.id) {
+            selectedCustomer.value = { ...selectedCustomer.value, ...customerForm.value };
+          }
+        }
+        showAddCustomerModal.value = false;
+        playBeepSound('success');
+      }
+    });
+  } else {
+    // Mode Tambah Pelanggan Baru
+    router.post('/pos/customers', customerForm.value, {
+      preserveScroll: true,
+      onSuccess: (page) => {
+        const newCust = page.props.flash?.customer || {
+          id: Date.now(),
+          ...customerForm.value,
+          kasbon_balance: 0
+        };
+        localCustomers.value.push(newCust);
+        selectedCustomer.value = newCust;
+        showAddCustomerModal.value = false;
+        showCustomerModal.value = false;
+        playBeepSound('success');
+      }
+    });
+  }
+}
+
+function deleteCustomer(id) {
+  if (id === 1) {
+    alert('Pelanggan Umum tidak boleh dihapus.');
+    return;
+  }
+  const cust = localCustomers.value.find(c => c.id === id);
+  if (!cust) return;
+
+  if (cust.kasbon_balance > 0) {
+    alert(`Pelanggan "${cust.name}" masih memiliki catatan kasbon Rp ${cust.kasbon_balance.toLocaleString('id-ID')}. Lunasi terlebih dahulu sebelum menghapus.`);
+    return;
+  }
+
+  if (!confirm(`Hapus data pelanggan "${cust.name}" dari sistem?`)) return;
+
+  router.delete('/pos/customers/' + id, {
+    preserveScroll: true,
+    onSuccess: () => {
+      localCustomers.value = localCustomers.value.filter(c => c.id !== id);
+      if (selectedCustomer.value?.id === id) {
+        selectedCustomer.value = getDefaultCustomer();
+      }
+      playBeepSound('delete');
+    }
+  });
+}
+
 // ================= FULLSCREEN & PWA INSTALL =================
 const isFullscreen = ref(false);
 const deferredInstallPrompt = ref(null);
@@ -1605,7 +1858,7 @@ async function triggerPwaInstall() {
     deferredInstallPrompt.value = null;
   } else {
     alert(
-      'Petunjuk Pemasangan PWA Naning POS:\n\n' +
+      'Petunjuk Pemasangan PWA Rozak Mart:\n\n' +
       '1. Di browser Chrome tablet/HP, ketuk ikon titik tiga (⋮) di pojok kanan atas.\n' +
       '2. Pilih menu "Tambahkan ke Layar Utama" (Add to Home screen) atau "Pasang Aplikasi".\n' +
       '3. Setelah terpasang, buka aplikasi langsung dari ikon Layar Utama tablet agar tampil Fullscreen tanpa address bar Chrome.'
@@ -1654,6 +1907,7 @@ onMounted(() => {
   window.addEventListener('appinstalled', handleAppInstalled);
   document.addEventListener('click', handleClickOutsideSearch);
   window.addEventListener('keydown', handleGlobalHardwareScan);
+  initVoiceSearch();
 
   // Buka kunci AudioContext otomatis saat klik/interaksi pertama pengguna
   const unlockAudioOnce = () => {
@@ -1681,7 +1935,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Head title="Naning POS - Layar Penuh Android Tablet" />
+  <Head title="Rozak Mart - Kasir Pintar Android Tablet" />
 
   <!-- ROOT CONTAINER: Mengisi Seluruh Layar (Fullscreen Edge-to-Edge) -->
   <div class="flex flex-row w-screen h-screen max-w-full max-h-screen overflow-hidden text-slate-800 bg-white select-none relative font-sans shadow-2xl">
@@ -1699,10 +1953,10 @@ onUnmounted(() => {
         <!-- Logo Toko -->
         <div class="flex items-center gap-2 shrink-0">
           <div class="w-8 h-8 rounded-xl bg-blue-700 flex items-center justify-center text-white font-black text-xs shadow-xs">
-            TP
+            RM
           </div>
           <div class="leading-tight">
-            <div class="text-xs font-black text-slate-900 leading-none">TPKmart</div>
+            <div class="text-xs font-black text-slate-900 leading-none">Rozak Mart</div>
             <div class="text-[9px] text-slate-500 font-medium">Kasir: <strong class="text-slate-700">Siska A.</strong></div>
           </div>
         </div>
@@ -1729,13 +1983,18 @@ onUnmounted(() => {
             @focus="onSearchFocus"
             @keydown="handleSearchKeydown"
             @keydown.enter.prevent="handleSearchSubmit"
-            placeholder="Scan barcode atau ketik nama produk..."
+            :placeholder="isVoiceListening ? '🎙️ Mendengarkan... Sebutkan nama barang' : 'Scan barcode atau ketik nama produk...'"
             autocomplete="off"
-            class="w-full bg-[#f1f3f4] text-slate-800 text-xs font-medium placeholder-slate-400 rounded-full pl-11 pr-8 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition border border-transparent shadow-xs"
+            :class="[
+              'w-full text-slate-800 text-xs font-medium rounded-full pl-11 pr-16 py-2 focus:outline-none transition border shadow-xs',
+              isVoiceListening 
+                ? 'bg-rose-50 border-rose-400 placeholder-rose-500 ring-2 ring-rose-400/30' 
+                : 'bg-[#f1f3f4] placeholder-slate-400 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500'
+            ]"
           />
 
-          <!-- Action di Bagian Kanan Form Search (Clear & Ikon Kaca Pembesar) -->
-          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400">
+          <!-- Action di Bagian Kanan Form Search: Clear, Mic Voice Search, & Ikon Kaca Pembesar -->
+          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-400">
             <button 
               v-if="searchQuery" 
               @click="clearSearchInput" 
@@ -1744,7 +2003,21 @@ onUnmounted(() => {
             >
               ✕
             </button>
-            <svg v-else class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+
+            <!-- Tombol Pencarian Suara (Voice Search) -->
+            <button 
+              @click="toggleVoiceSearch" 
+              type="button"
+              :title="isVoiceListening ? 'Mendengarkan suara... Sentuh untuk berhenti' : 'Cari Produk dengan Suara (Sebutkan Nama Barang)'"
+              :class="[
+                'w-7 h-7 rounded-full flex items-center justify-center text-xs transition cursor-pointer shrink-0',
+                isVoiceListening 
+                  ? 'bg-rose-600 text-white animate-pulse shadow-[0_0_12px_#e11d48]' 
+                  : 'hover:bg-slate-200 text-slate-600'
+              ]"
+            >
+              <span>{{ isVoiceListening ? '🔴' : '🎙️' }}</span>
+            </button>
           </div>
 
           <!-- Dropdown Hasil Pencarian Live & Auto-Suggest -->
@@ -2222,7 +2495,7 @@ onUnmounted(() => {
             v-for="p in filteredCatalogProducts" 
             :key="p.id" 
             @click="addToCart(p, 0)"
-            class="bg-[#f8f9fa] hover:bg-blue-50 active:bg-blue-100 border border-slate-200/80 rounded-2xl p-2.5 text-left flex flex-col justify-between transition shadow-2xs cursor-pointer h-[104px]"
+            class="bg-[#f8f9fa] hover:bg-blue-50 active:bg-blue-100 border border-slate-200/80 rounded-2xl p-2.5 text-left flex flex-col justify-between transition shadow-2xs cursor-pointer h-[106px] relative group"
           >
             <div class="flex items-start gap-2.5">
               <div class="w-8 h-8 rounded-xl bg-white shadow-2xs flex items-center justify-center shrink-0 overflow-hidden">
@@ -2232,14 +2505,24 @@ onUnmounted(() => {
               <div class="truncate flex-1">
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[9px] text-blue-600 font-bold uppercase tracking-wider block truncate">{{ getProductCategoryName(p) }}</span>
-                  <span v-if="p.units && p.units.length > 1" class="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded-md shrink-0">
-                    {{ p.units.length }} Satuan
-                  </span>
+                  <div class="flex items-center gap-1">
+                    <span v-if="p.units && p.units.length > 1" class="text-[8px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded-md shrink-0">
+                      {{ p.units.length }} Satuan
+                    </span>
+                    <button 
+                      type="button"
+                      @click.stop="openEditProductModal(p)"
+                      title="Edit Produk / Atur Harga / Hapus"
+                      class="w-5 h-5 rounded-md bg-white border border-slate-200 hover:bg-amber-100 hover:border-amber-300 text-slate-500 hover:text-amber-800 flex items-center justify-center text-[10px] transition cursor-pointer"
+                    >
+                      ✏️
+                    </button>
+                  </div>
                 </div>
                 <div class="text-xs text-slate-900 font-bold line-clamp-2 mt-0.5 leading-snug">{{ p.name }}</div>
               </div>
             </div>
-            <div class="mt-2.5 pt-1.5 border-t border-slate-200/80 flex justify-between items-end">
+            <div class="mt-2 pt-1 border-t border-slate-200/80 flex justify-between items-end">
               <span class="text-[10px] text-slate-500 font-medium">{{ p.units && p.units[0] ? p.units[0].name : 'Pcs' }}</span>
               <span class="text-xs font-mono text-emerald-700 font-black">
                 Rp {{ (p.units && p.units[0] ? p.units[0].price : 0).toLocaleString('id-ID') }}
@@ -2263,7 +2546,7 @@ onUnmounted(() => {
         <div class="bg-[#f8f9fa] border-t border-slate-200 px-4 py-2 shrink-0 flex justify-between items-center text-[11px] text-slate-500">
           <span class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Sentuh kartu untuk menambah belanjaan</span>
+            <span>Sentuh kartu untuk ke keranjang · Sentuh ✏️ untuk edit/hapus produk</span>
           </span>
           <span class="text-slate-400 font-mono text-[10px]">Panel kasir kanan tetap aktif</span>
         </div>
@@ -2283,7 +2566,17 @@ onUnmounted(() => {
               <p class="text-[10px] text-slate-500">Pilih pembeli untuk kasbon & riwayat</p>
             </div>
           </div>
-          <button @click="showCustomerModal = false" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs transition">✕</button>
+          <div class="flex items-center gap-1.5">
+            <button 
+              @click="openAddCustomerModal" 
+              type="button"
+              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-2xs transition cursor-pointer"
+            >
+              <span>➕</span>
+              <span>Baru</span>
+            </button>
+            <button @click="showCustomerModal = false" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs transition">✕</button>
+          </div>
         </div>
 
         <!-- Search -->
@@ -2329,22 +2622,32 @@ onUnmounted(() => {
             v-for="c in filteredCustomers.filter(c => c.id !== 1 && !c.name.toLowerCase().includes('umum'))" 
             :key="c.id" 
             @click="selectCustomer(c)"
-            class="pt-2 flex items-center justify-between p-2 rounded-2xl hover:bg-blue-50 cursor-pointer transition border border-transparent hover:border-blue-200"
+            class="pt-2 flex items-center justify-between p-2 rounded-2xl hover:bg-blue-50 cursor-pointer transition border border-transparent hover:border-blue-200 group"
           >
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
               <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs shrink-0">
                 {{ c.name.charAt(0) }}
               </div>
-              <div>
-                <div class="font-bold text-xs text-slate-900">{{ c.name }}</div>
+              <div class="min-w-0">
+                <div class="font-bold text-xs text-slate-900 truncate">{{ c.name }}</div>
                 <div class="text-[10px] text-slate-400 font-mono">{{ c.phone || '-' }}</div>
               </div>
             </div>
-            <div class="text-right">
-              <span class="text-[9px] text-slate-400 block font-medium">Kasbon:</span>
-              <span class="text-xs font-mono font-bold" :class="c.kasbon_balance > 0 ? 'text-rose-600' : 'text-slate-400'">
-                Rp {{ (c.kasbon_balance || 0).toLocaleString('id-ID') }}
-              </span>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="text-right">
+                <span class="text-[9px] text-slate-400 block font-medium">Kasbon:</span>
+                <span class="text-xs font-mono font-bold" :class="c.kasbon_balance > 0 ? 'text-rose-600' : 'text-slate-400'">
+                  Rp {{ (c.kasbon_balance || 0).toLocaleString('id-ID') }}
+                </span>
+              </div>
+              <button 
+                type="button"
+                @click.stop="openEditCustomerModal(c)"
+                title="Edit Data Pelanggan / Member"
+                class="w-7 h-7 rounded-full bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-500 flex items-center justify-center text-xs transition cursor-pointer"
+              >
+                ✏️
+              </button>
             </div>
           </div>
         </div>
@@ -2353,6 +2656,122 @@ onUnmounted(() => {
         <div class="p-3 border-t border-slate-200 bg-[#f8f9fa] shrink-0 flex justify-between items-center">
           <span class="text-[10px] text-slate-400 font-medium">Panel keranjang kiri tetap aktif</span>
           <button @click="showCustomerModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-1.5 rounded-full font-bold transition">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2b. ANDROID DIALOG: TAMBAH / EDIT PELANGGAN & MEMBER -->
+    <div v-if="showAddCustomerModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl w-[480px] max-w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="bg-white px-5 py-3.5 border-b border-slate-100 flex justify-between items-center">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-base shadow-2xs font-bold" :class="editingCustomer ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700'">
+              {{ editingCustomer ? '✏️' : '👤' }}
+            </div>
+            <div>
+              <h3 class="font-bold text-sm text-slate-900 leading-tight">
+                {{ editingCustomer ? 'Edit Data Pelanggan' : 'Tambah Pelanggan Baru' }}
+              </h3>
+              <p class="text-[11px] text-slate-500">
+                {{ editingCustomer ? 'Perbarui informasi kontak & limit kasbon' : 'Daftarkan pembeli / pelanggan tetap toko' }}
+              </p>
+            </div>
+          </div>
+          <button @click="showAddCustomerModal = false" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold transition">
+            ✕
+          </button>
+        </div>
+
+        <!-- Form Body -->
+        <div class="p-5 flex flex-col gap-3">
+          <!-- Nama Pelanggan -->
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Nama Lengkap Pelanggan: <span class="text-rose-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              v-model="customerForm.name" 
+              placeholder="Contoh: Bu Hj. Maryam, Pak RT, dsb."
+              class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+              @keydown.enter.prevent="saveCustomer"
+            />
+          </div>
+
+          <!-- Nomor WhatsApp / HP -->
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Nomor WhatsApp / HP:
+            </label>
+            <input 
+              type="text" 
+              v-model="customerForm.phone" 
+              placeholder="Contoh: 081234567890 (bisa dikosongkan)"
+              class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+
+          <!-- Alamat / Keterangan Rumah -->
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Alamat / Catatan Lokasi:
+            </label>
+            <input 
+              type="text" 
+              v-model="customerForm.address" 
+              placeholder="Contoh: RT 03 RW 02 (Depan masjid)"
+              class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+
+          <!-- Limit Kasbon -->
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Batas Maksimal Kasbon (Limit Hutang):
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+              <input 
+                type="number" 
+                v-model="customerForm.credit_limit" 
+                placeholder="500000"
+                class="w-full bg-[#f1f3f4] border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+              />
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1 block">Pelanggan tidak dapat kasbon jika total hutang melebihi limit ini.</span>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-[#f8f9fa] border-t border-slate-200 px-5 py-3 flex items-center justify-between">
+          <div>
+            <button 
+              v-if="editingCustomer && editingCustomer.id !== 1" 
+              type="button" 
+              @click="deleteCustomer(editingCustomer.id); showAddCustomerModal = false" 
+              class="text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-rose-200 text-xs font-bold px-3 py-2 rounded-full transition flex items-center gap-1 cursor-pointer"
+            >
+              <span>🗑️</span> Hapus
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              @click="showAddCustomerModal = false" 
+              class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-full transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              @click="saveCustomer" 
+              class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold px-5 py-2 rounded-full shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>💾</span>
+              <span>{{ editingCustomer ? 'Simpan Perubahan' : 'Daftarkan Pelanggan' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -2366,12 +2785,19 @@ onUnmounted(() => {
           <div>
             <!-- Header Modal Kiri -->
             <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
-              <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-2xs">
-                ➕
+              <div 
+                class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-2xs"
+                :class="editingProductId ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'"
+              >
+                {{ editingProductId ? '✏️' : '➕' }}
               </div>
               <div>
-                <h3 class="font-bold text-xs text-slate-900 leading-tight">Tambah Produk Baru</h3>
-                <p class="text-[10px] text-slate-500">Daftarkan item ke katalog toko & keranjang</p>
+                <h3 class="font-bold text-xs text-slate-900 leading-tight">
+                  {{ editingProductId ? 'Edit Data Produk' : 'Tambah Produk Baru' }}
+                </h3>
+                <p class="text-[10px] text-slate-500">
+                  {{ editingProductId ? 'Perbarui data barcode, nama, harga, multi-satuan atau hapus item' : 'Daftarkan item ke katalog toko & keranjang' }}
+                </p>
               </div>
             </div>
 
@@ -2595,12 +3021,22 @@ onUnmounted(() => {
 
           <!-- Footer Tombol Kiri -->
           <div class="flex gap-2 pt-2 border-t border-slate-100 mt-2">
+            <button 
+              v-if="editingProductId"
+              type="button"
+              @click="deleteCurrentProduct" 
+              class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3 py-2 rounded-full font-bold border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+              title="Hapus produk permanen"
+            >
+              <span>🗑️</span>
+              <span>Hapus</span>
+            </button>
             <button @click="showAddProductModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-full font-bold transition">
               Batal
             </button>
             <button @click="saveNewProduct" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded-full font-bold shadow-xs transition flex items-center justify-center gap-1">
               <span>💾</span>
-              <span>Simpan Produk</span>
+              <span>{{ editingProductId ? 'Simpan Perubahan' : 'Simpan Produk' }}</span>
             </button>
           </div>
         </div>
@@ -2746,7 +3182,7 @@ onUnmounted(() => {
           </div>
           <div>
             <h3 class="font-bold text-xs text-slate-900 leading-tight">Produk Belum Terdaftar!</h3>
-            <p class="text-[10px] text-slate-500">Barcode belum ada di katalog toko TPKmart</p>
+            <p class="text-[10px] text-slate-500">Barcode belum ada di katalog toko Rozak Mart</p>
           </div>
         </div>
 
@@ -3134,7 +3570,7 @@ onUnmounted(() => {
         <div class="text-center flex flex-col items-center gap-2">
           <span class="text-xs text-slate-500">Arahkan aplikasi m-banking atau e-wallet:</span>
           <div class="bg-white p-3 rounded-3xl w-44 h-44 flex flex-col items-center justify-center border-2 border-blue-500 shadow-md relative">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TPKMART-POS-TRANSACTION-MOCKUP" alt="QRIS Mockup" class="w-36 h-36" />
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ROZAK-MART-POS-TRANSACTION-MOCKUP" alt="QRIS Mockup" class="w-36 h-36" />
             <span class="absolute bottom-1 text-[8px] font-bold text-slate-500 font-mono tracking-tighter">QRIS RESMI</span>
           </div>
           <div class="flex flex-col items-center">
@@ -3162,7 +3598,7 @@ onUnmounted(() => {
         </div>
 
         <div class="thermal-receipt p-4 rounded-2xl text-xs overflow-y-auto max-h-[440px] border border-slate-200 shadow-inner select-text font-mono" id="printable-receipt">
-          <div class="text-center font-bold text-sm tracking-widest">TPKMART</div>
+          <div class="text-center font-bold text-sm tracking-widest">ROZAK MART</div>
           <div class="text-center text-[10px] leading-tight mt-0.5 text-gray-600">
             Jl. Melati No. 12, Kel. Sukamaju<br>
             Telp: 0812-3456-7890
