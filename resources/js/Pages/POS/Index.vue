@@ -321,6 +321,12 @@ function initVoiceSearch() {
         speechRecognitionInstance.onerror = (event) => {
           console.warn('Voice recognition error:', event.error);
           isVoiceListening.value = false;
+          playBeepSound('warning');
+          if (event.error === 'network') {
+            alert('Fitur suara browser memerlukan internet, ATAU aktifkan paket offline di tablet: Pengaturan Android > Google Voice Typing > Pengenalan Suara Offline > Unduh Bahasa Indonesia.');
+          } else if (event.error === 'not-allowed') {
+            alert('Izin mikrofon belum diberikan. Silakan izinkan akses mikrofon pada peramban/browser tablet Anda.');
+          }
         };
 
         speechRecognitionInstance.onend = () => {
