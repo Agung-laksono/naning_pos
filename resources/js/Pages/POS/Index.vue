@@ -302,6 +302,76 @@ let hardwareBarcodeBuffer = '';
 let lastHardwareKeyTime = 0;
 
 function handleGlobalHardwareScan(e) {
+  // ================= GLOBAL FUNCTION KEY SHORTCUTS (F1 - F9 & ESCAPE) =================
+  if (e.key === 'F1') {
+    e.preventDefault();
+    const searchInput = document.getElementById('pos-search-input');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    }
+    return;
+  }
+  if (e.key === 'F2') {
+    e.preventDefault();
+    showGalleryModal.value = !showGalleryModal.value;
+    return;
+  }
+  if (e.key === 'F3') {
+    e.preventDefault();
+    showCustomerModal.value = !showCustomerModal.value;
+    return;
+  }
+  if (e.key === 'F4') {
+    e.preventDefault();
+    if (cart.value.length > 0) {
+      if (rightMode.value === 'cash') {
+        confirmInlineCash(false);
+      } else {
+        openCashInline();
+      }
+    }
+    return;
+  }
+  if (e.key === 'F7') {
+    e.preventDefault();
+    if (cart.value.length > 0) {
+      payQris();
+    }
+    return;
+  }
+  if (e.key === 'F8') {
+    e.preventDefault();
+    showHoldModal.value = !showHoldModal.value;
+    return;
+  }
+  if (e.key === 'F9') {
+    e.preventDefault();
+    if (cart.value.length > 0) {
+      holdCurrentTransaction();
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (rightMode.value === 'cash') {
+      closeCashInline();
+      return;
+    }
+    if (showNavMenu.value) { showNavMenu.value = false; return; }
+    if (showQrisModal.value) { showQrisModal.value = false; return; }
+    if (showReceiptModal.value) { showReceiptModal.value = false; return; }
+    if (showSettingsModal.value) { showSettingsModal.value = false; return; }
+    if (showReportsDrawer.value) { showReportsDrawer.value = false; return; }
+    if (showCustomerModal.value) { showCustomerModal.value = false; return; }
+    if (showGalleryModal.value) { showGalleryModal.value = false; return; }
+    if (showHoldModal.value) { showHoldModal.value = false; return; }
+    if (showScannerModal.value) { stopCameraScanner(); return; }
+    if (showPayDebtModal.value) { showPayDebtModal.value = false; return; }
+    if (showUnregisteredModal.value) { showUnregisteredModal.value = false; return; }
+    if (showQuickBarcodeModal.value) { showQuickBarcodeModal.value = false; return; }
+    if (isSearchDropdownOpen.value) { isSearchDropdownOpen.value = false; return; }
+  }
+
   const activeEl = document.activeElement;
   const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
   const isSearchInput = activeEl && activeEl.id === 'pos-search-input';
@@ -2415,10 +2485,13 @@ onUnmounted(() => {
               <button 
                 type="button" 
                 @click="showNavMenu = false; showCustomerModal = true" 
-                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center gap-2.5 transition cursor-pointer"
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-bold flex items-center justify-between transition cursor-pointer"
               >
-                <span class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">👥</span>
-                <span>Manajemen Pelanggan</span>
+                <div class="flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">👥</span>
+                  <span>Manajemen Pelanggan</span>
+                </div>
+                <span class="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono font-bold">F3</span>
               </button>
 
               <!-- Item 5: Antrean Pesanan -->
@@ -2431,7 +2504,10 @@ onUnmounted(() => {
                   <span class="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">⏸️</span>
                   <span>Antrean Pesanan (Hold)</span>
                 </div>
-                <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono font-bold">{{ holdOrdersList.length }}</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono font-bold">F8</span>
+                  <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono font-bold">{{ holdOrdersList.length }}</span>
+                </div>
               </button>
 
               <div class="h-px bg-slate-100 my-1"></div>
@@ -2481,7 +2557,7 @@ onUnmounted(() => {
             @focus="onSearchFocus"
             @keydown="handleSearchKeydown"
             @keydown.enter.prevent="handleSearchSubmit"
-            placeholder="Scan barcode atau ketik nama produk..."
+            placeholder="Scan barcode atau ketik nama produk... (F1)"
             autocomplete="off"
             class="w-full bg-slate-100/90 focus:bg-white text-slate-800 text-xs font-semibold rounded-xl pl-11 pr-8 py-2 focus:outline-none transition border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 placeholder-slate-400"
           />
@@ -2569,7 +2645,8 @@ onUnmounted(() => {
         <!-- Tombol Galeri Produk (MODERN POS FLAT) -->
         <button @click="showGalleryModal = true" class="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition cursor-pointer uppercase">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-          Galeri
+          <span>Galeri</span>
+          <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono font-bold">F2</span>
         </button>
 
         <!-- Badges & Counter Item (MODERN POS FLAT) -->
@@ -2769,11 +2846,13 @@ onUnmounted(() => {
           <div class="px-3 pt-2.5 pb-1.5 grid grid-cols-2 gap-2">
             <button @click="holdCurrentTransaction" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider shadow-2xs">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-              Hold Order
+              <span>Hold Order</span>
+              <span class="text-[9px] bg-amber-600/30 text-slate-900 px-1 py-0.5 rounded font-mono font-black">F9</span>
             </button>
             <button @click="clearCart" class="bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              Batalkan
+              <span>Batalkan</span>
+              <span class="text-[9px] bg-rose-200/60 text-rose-800 px-1 py-0.5 rounded font-mono font-bold">Esc</span>
             </button>
           </div>
 
@@ -2787,19 +2866,25 @@ onUnmounted(() => {
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 BAYAR TUNAI (CASH)
               </span>
-              <span class="bg-emerald-800/80 px-2.5 py-1 rounded-lg text-[10px] font-black font-mono tracking-widest">UANG PAS</span>
+              <span class="bg-emerald-800/80 px-2 py-1 rounded-lg text-[10px] font-black font-mono tracking-widest flex items-center gap-1.5">
+                <span>UANG PAS</span>
+                <span class="bg-emerald-950/70 text-emerald-200 px-1 rounded text-[9px] font-mono">F4</span>
+              </span>
             </button>
 
             <div class="grid grid-cols-2 gap-2">
               <!-- QRIS (Modern Blue Tile) -->
-              <button @click="payQris" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs transition cursor-pointer shadow-xs uppercase tracking-wider">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                QRIS / Transfer
+              <button @click="payQris" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-between text-xs transition cursor-pointer shadow-xs uppercase tracking-wider">
+                <div class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                  <span>QRIS</span>
+                </div>
+                <span class="bg-blue-800/70 text-blue-100 px-1 py-0.5 rounded text-[9px] font-mono font-bold">F7</span>
               </button>
               <!-- Kasbon (Modern Amber Tile) -->
               <button @click="payKasbon" class="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs transition cursor-pointer shadow-xs uppercase tracking-wider">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Kasbon Toko
+                <span>Kasbon Toko</span>
               </button>
             </div>
           </div>
