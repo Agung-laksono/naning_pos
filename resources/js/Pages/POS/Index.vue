@@ -168,6 +168,7 @@ function clearCart() {
 
 // ================= SEARCH & AUTO-SUGGEST DROPDOWN =================
 const searchQuery = ref('');
+const searchInputMode = ref('number'); // 'number' | 'text' (default ke number untuk tablet POS)
 const isSearchDropdownOpen = ref(false);
 const highlightedIndex = ref(-1);
 const searchUnregisteredQuery = ref(null);
@@ -175,8 +176,16 @@ const scannerTarget = ref('cart'); // 'cart' | 'newProduct'
 const showUnregisteredModal = ref(false);
 const unregisteredBarcode = ref('');
 
+function toggleSearchInputMode() {
+  searchInputMode.value = searchInputMode.value === 'number' ? 'text' : 'number';
+  nextTick(() => {
+    const inputEl = document.getElementById('pos-search-input');
+    if (inputEl) inputEl.focus();
+  });
+}
+
 const searchSuggestions = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase();
+  const q = String(searchQuery.value || '').trim().toLowerCase();
   if (!q) return [];
 
   return localProducts.value.filter(p => {
@@ -187,7 +196,7 @@ const searchSuggestions = computed(() => {
 });
 
 function onSearchInput() {
-  const q = searchQuery.value.trim();
+  const q = String(searchQuery.value || '').trim();
   if (q) {
     isSearchDropdownOpen.value = true;
     searchUnregisteredQuery.value = null;
@@ -200,7 +209,7 @@ function onSearchInput() {
 }
 
 function onSearchFocus() {
-  if (searchQuery.value.trim()) {
+  if (String(searchQuery.value || '').trim()) {
     isSearchDropdownOpen.value = true;
   }
 }
@@ -233,7 +242,7 @@ function handleSearchKeydown(e) {
 }
 
 function handleSearchSubmit() {
-  const query = searchQuery.value.trim();
+  const query = String(searchQuery.value || '').trim();
   if (!query) return;
   const lowerQuery = query.toLowerCase();
 
@@ -2551,25 +2560,36 @@ onUnmounted(() => {
 
           <input 
             id="pos-search-input"
-            type="text" 
+            :type="searchInputMode === 'number' ? 'number' : 'text'"
+            :inputmode="searchInputMode === 'number' ? 'numeric' : 'text'"
             v-model="searchQuery" 
             @input="onSearchInput"
             @focus="onSearchFocus"
             @keydown="handleSearchKeydown"
             @keydown.enter.prevent="handleSearchSubmit"
-            placeholder="Scan barcode atau ketik nama produk... (F1)"
+            :placeholder="searchInputMode === 'number' ? 'Scan barcode / ketik angka...' : 'Ketik nama produk...'"
             autocomplete="off"
-            class="w-full bg-slate-100/90 focus:bg-white text-slate-800 text-xs font-semibold rounded-xl pl-11 pr-8 py-2 focus:outline-none transition border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 placeholder-slate-400"
+            class="w-full bg-slate-100/90 focus:bg-white text-slate-800 text-xs font-semibold rounded-xl pl-11 pr-20 py-2 focus:outline-none transition border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 placeholder-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
 
-          <!-- Action di Bagian Kanan Form Search: Clear (✕) -->
-          <div v-if="searchQuery" class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center text-slate-400">
+          <!-- Action di Bagian Kanan Form Search: Clear (✕) & Switcher Mode (123 / ABC) -->
+          <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
             <button 
+              v-if="searchQuery"
               @click="clearSearchInput" 
               type="button"
               class="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] font-bold transition cursor-pointer"
             >
               ✕
+            </button>
+            <button 
+              type="button" 
+              @click="toggleSearchInputMode" 
+              :title="searchInputMode === 'number' ? 'Mode Angka/Barcode aktif (Sentuh untuk ganti ke Teks)' : 'Mode Teks aktif (Sentuh untuk ganti ke Angka)'"
+              :class="searchInputMode === 'number' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'"
+              class="px-2 py-0.5 rounded-md text-[10px] font-mono font-black transition cursor-pointer select-none active:scale-95"
+            >
+              {{ searchInputMode === 'number' ? '123' : 'ABC' }}
             </button>
           </div>
 
