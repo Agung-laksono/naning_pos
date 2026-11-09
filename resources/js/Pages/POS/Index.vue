@@ -2862,26 +2862,38 @@ onUnmounted(() => {
 
         <!-- Footer Panel Kanan: Tombol Pembayaran (MODERN POS TILES) -->
         <div class="border-t border-slate-200 shrink-0 bg-slate-50/50">
-          <!-- Aksi Sekunder: Hold & Batalkan (Modern POS Tiles) -->
+          <!-- Aksi Sekunder: Hold & Batalkan (Disabled jika keranjang kosong) -->
           <div class="px-3 pt-2.5 pb-1.5 grid grid-cols-2 gap-2">
-            <button @click="holdCurrentTransaction" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider shadow-2xs">
+            <button 
+              @click="holdCurrentTransaction" 
+              :disabled="cart.length === 0"
+              class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:pointer-events-none"
+            >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
               <span>Hold Order</span>
               <span class="text-[9px] bg-amber-600/30 text-slate-900 px-1 py-0.5 rounded font-mono font-black">F9</span>
             </button>
-            <button @click="clearCart" class="bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider">
+            <button 
+              @click="clearCart" 
+              :disabled="cart.length === 0"
+              class="bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:pointer-events-none"
+            >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               <span>Batalkan</span>
               <span class="text-[9px] bg-rose-200/60 text-rose-800 px-1 py-0.5 rounded font-mono font-bold">Esc</span>
             </button>
           </div>
 
-          <!-- Tombol Bayar Utama (Modern POS Colored Tiles) -->
+          <!-- Tombol Bayar Utama (Disabled jika keranjang kosong) -->
           <div class="px-3 pb-3 flex flex-col gap-2">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode Pembayaran</span>
 
             <!-- Bayar Tunai (Modern Vibrant Emerald Tile) -->
-            <button @click="openCashInline" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-between text-xs tracking-wider transition cursor-pointer shadow-xs uppercase">
+            <button 
+              @click="openCashInline" 
+              :disabled="cart.length === 0"
+              class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-between text-xs tracking-wider transition cursor-pointer shadow-xs uppercase disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:pointer-events-none"
+            >
               <span class="flex items-center gap-2 text-sm font-black">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 BAYAR TUNAI (CASH)
@@ -2894,7 +2906,11 @@ onUnmounted(() => {
 
             <div class="grid grid-cols-2 gap-2">
               <!-- QRIS (Modern Blue Tile) -->
-              <button @click="payQris" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-between text-xs transition cursor-pointer shadow-xs uppercase tracking-wider">
+              <button 
+                @click="payQris" 
+                :disabled="cart.length === 0"
+                class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-between text-xs transition cursor-pointer shadow-xs uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:pointer-events-none"
+              >
                 <div class="flex items-center gap-1.5">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                   <span>QRIS</span>
@@ -2902,7 +2918,11 @@ onUnmounted(() => {
                 <span class="bg-blue-800/70 text-blue-100 px-1 py-0.5 rounded text-[9px] font-mono font-bold">F7</span>
               </button>
               <!-- Kasbon (Modern Amber Tile) -->
-              <button @click="payKasbon" class="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs transition cursor-pointer shadow-xs uppercase tracking-wider">
+              <button 
+                @click="payKasbon" 
+                :disabled="cart.length === 0"
+                class="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs transition cursor-pointer shadow-xs uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:pointer-events-none"
+              >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Kasbon Toko</span>
               </button>
