@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -656,5 +657,60 @@ class PosController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Pembayaran kasbon {$customer->name} sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat.");
+    }
+
+    /**
+     * Halaman Customer Facing Display (Layar Kedua Pembeli / Dual Display)
+     */
+    public function customerDisplay(Request $request): Response
+    {
+        $settings = Setting::pluck('value', 'key');
+        $liveDisplay = Cache::get('pos_live_display', [
+            'state' => 'IDLE',
+            'cart' => [],
+            'grandTotal' => 0,
+            'totalQty' => 0,
+        ]);
+
+        return Inertia::render('POS/CustomerDisplay', [
+            'settings' => $settings,
+            'initialLiveState' => $liveDisplay,
+            'store' => [
+                'name' => $settings['store_name'] ?? 'Rozak Mart',
+                'address' => $settings['store_address'] ?? 'Jl. KH Wahid Hasyim No. 42, Jakarta Barat',
+                'phone' => $settings['store_phone'] ?? '0812-3456-7890',
+                'footer' => $settings['receipt_footer'] ?? 'Terima Kasih Atas Kunjungan Anda!',
+            ]
+        ]);
+    }
+
+    /**
+     * Endpoint Sinkronisasi Live State dari Kasir ke Layar Kedua Pembeli
+     */
+    public function syncDisplay(Request $request)
+    {
+        $data = $request->all();
+        $data['timestamp'] = now()->timestamp;
+        Cache::put('pos_live_display', $data, 3600);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'State dual display berhasil diperbarui'
+        ]);
+    }
+
+    /**
+     * Endpoint Polling Realtime State untuk Layar Kedua Nirkabel (Wireless Secondary Tablet/Phone)
+     */
+    public function getLiveDisplay()
+    {
+        $liveDisplay = Cache::get('pos_live_display', [
+            'state' => 'IDLE',
+            'cart' => [],
+            'grandTotal' => 0,
+            'totalQty' => 0,
+        ]);
+
+        return response()->json($liveDisplay);
     }
 }

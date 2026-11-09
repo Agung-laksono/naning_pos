@@ -1231,6 +1231,12 @@ function finalizeTransaction(method, paidAmount, changeAmount, autoPrint = false
     });
   }
 
+  // Sinyal sukses ke Layar Pembeli (Dual Display)
+  syncCustomerDisplay('SUCCESS');
+  setTimeout(() => {
+    syncCustomerDisplay('IDLE');
+  }, 7000);
+
   // Reset keranjang & kembalikan default pembeli ke Pelanggan Umum
   cart.value = [];
   selectedCustomer.value = getDefaultCustomer();
@@ -2351,9 +2357,117 @@ function handleAppInstalled() {
   isPwaStandalone.value = true;
 }
 
+// ================= DUAL DISPLAY (CUSTOMER FACING DISPLAY) =================
+let displayChannel = null;
+let backendSyncTimer = null;
+
+function debouncedBackendDisplaySync(payload) {
+  if (backendSyncTimer) clearTimeout(backendSyncTimer);
+  backendSyncTimer = setTimeout(() => {
+    fetch('/pos/display/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  }, 400);
+}
+
+function syncCustomerDisplay(overrideState = null) {
+  let state = 'IDLE';
+  if (overrideState) {
+    state = overrideState;
+  } else if (showQrisModal.value) {
+    state = 'PAYING_QRIS';
+  } else if (rightMode.value === 'cash') {
+    state = 'PAYING_CASH';
+  } else if (cart.value.length > 0) {
+    state = 'ACTIVE';
+  }
+
+  const payload = {
+    state,
+    store: {
+      name: settingsForm.value?.store_name || 'Rozak Mart',
+      address: settingsForm.value?.store_address || '',
+      phone: settingsForm.value?.store_phone || '',
+      footer: settingsForm.value?.receipt_footer || ''
+    },
+    cashier: {
+      name: props.authCashier?.name || 'Siska Anggraeni',
+      shift: props.authCashier?.shift || 'Shift Pagi · Kasir Aktif'
+    },
+    customer: selectedCustomer.value,
+    cart: cart.value.map(item => ({
+      name: item.name,
+      qty: item.qty,
+      price: item.price,
+      unit: item.unit,
+      discount: item.discount,
+      subtotal: (item.price * item.qty) - (item.discount || 0),
+      icon: item.icon || '📦'
+    })),
+    totalQty: totalQty.value,
+    subtotal: subtotal.value,
+    discount: itemDiscountTotal.value + globalDiscount.value,
+    grandTotal: grandTotal.value,
+    cash: {
+      given: parseFloat(inlineCashGiven.value.replace(/\./g, '')) || 0,
+      change: inlineCashChange.value
+    },
+    qris: {
+      mode: qrisMode.value,
+      qrUrl: qrisMode.value === 'gateway' ? gatewayQrUrl.value : dynamicEmvcoQrUrl.value,
+      status: gatewayStatus.value,
+      message: gatewayMessage.value
+    },
+    lastTransaction: lastTransaction.value,
+    timestamp: Date.now()
+  };
+
+  // 1. BroadcastChannel API lokal (Nol latensi untuk multi-monitor / dual-screen)
+  try {
+    if (displayChannel) {
+      displayChannel.postMessage(payload);
+    }
+  } catch (e) {}
+
+  // 2. localStorage Event fallback
+  try {
+    localStorage.setItem('rozak_dual_display_state', JSON.stringify(payload));
+  } catch (e) {}
+
+  // 3. Debounced sync ke backend untuk tablet kedua nirkabel
+  debouncedBackendDisplaySync(payload);
+}
+
+function openCustomerDisplay() {
+  const url = '/pos/display';
+  window.open(url, 'RozakMartCustomerDisplay', 'width=1024,height=600,menubar=no,toolbar=no,location=no,status=no');
+  setTimeout(() => syncCustomerDisplay(), 500);
+}
+
+// Watchers untuk update otomatis layar pembeli secara realtime
+watch(cart, () => syncCustomerDisplay(), { deep: true });
+watch(selectedCustomer, () => syncCustomerDisplay(), { deep: true });
+watch([globalDiscount, rightMode, inlineCashGiven, showQrisModal, qrisMode, gatewayStatus, gatewayQrUrl], () => {
+  syncCustomerDisplay();
+});
+
 onMounted(() => {
   updateClock();
   clockTimer = setInterval(updateClock, 1000);
+
+  // Inisialisasi BroadcastChannel untuk Dual Display
+  try {
+    if ('BroadcastChannel' in window) {
+      displayChannel = new BroadcastChannel('rozak_pos_display');
+      // Langsung broadcast state awal
+      syncCustomerDisplay();
+    }
+  } catch (e) {}
 
   checkPwaStandalone();
 
@@ -2408,6 +2522,9 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalHardwareScan);
   if (html5QrCode && isCameraActive.value) {
     html5QrCode.stop().catch(() => {});
+  }
+  if (displayChannel) {
+    displayChannel.close();
   }
 });
 </script>
@@ -2531,6 +2648,19 @@ onUnmounted(() => {
               </button>
 
               <div class="h-px bg-slate-100 my-1"></div>
+
+              <!-- Item: Layar Pembeli (Dual Display / CFD) -->
+              <button 
+                type="button" 
+                @click="showNavMenu = false; openCustomerDisplay()" 
+                class="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-700 font-bold flex items-center justify-between transition cursor-pointer"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-xs">🖥️</span>
+                  <span>Layar Pembeli (Dual Display)</span>
+                </div>
+                <span class="text-[9px] bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded font-mono font-bold">CFD</span>
+              </button>
 
               <!-- Item 6: Fullscreen Toggle -->
               <button 
@@ -4809,6 +4939,31 @@ onUnmounted(() => {
                   <input type="checkbox" v-model="settingsForm.enable_hpp_profit" class="sr-only peer">
                   <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                 </label>
+              </div>
+
+              <!-- Saklar 4: Layar Kedua Pembeli (Customer Dual Display) -->
+              <div class="p-3 bg-teal-50/80 rounded-xl border border-teal-200 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <div class="pr-3">
+                    <div class="text-xs font-bold text-teal-950 flex items-center gap-1.5">
+                      <span>🖥️</span> Layar Kedua Pembeli (Customer Facing Display)
+                    </div>
+                    <div class="text-[10px] text-teal-700 mt-0.5 leading-relaxed">
+                      Menampilkan barang belanjaan, total tagihan, dan kode QRIS dinamis langsung menghadap pembeli.
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    @click="openCustomerDisplay" 
+                    class="bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs shrink-0"
+                  >
+                    Buka Layar
+                  </button>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-teal-200 text-[10px] font-mono text-slate-600 flex items-center justify-between">
+                  <span>URL Layar Nirkabel: <strong class="text-teal-800">/pos/display</strong></span>
+                  <span class="text-[9px] bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded font-bold">WiFi / Secondary Monitor</span>
+                </div>
               </div>
             </div>
 

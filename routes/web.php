@@ -28,6 +28,11 @@ Route::get('/pos/transactions', [PosController::class, 'getTransactions'])->name
 Route::get('/pos/reports/summary', [PosController::class, 'getFinancialSummary'])->name('pos.reports.summary');
 Route::post('/pos/customers/{id}/pay-debt', [PosController::class, 'payDebt'])->name('pos.customers.payDebt');
 
+// Customer Facing Display (Dual Display / Layar Kedua Pembeli)
+Route::get('/pos/display', [PosController::class, 'customerDisplay'])->name('pos.display');
+Route::post('/pos/display/sync', [PosController::class, 'syncDisplay'])->name('pos.display.sync');
+Route::get('/pos/display/live', [PosController::class, 'getLiveDisplay'])->name('pos.display.live');
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
