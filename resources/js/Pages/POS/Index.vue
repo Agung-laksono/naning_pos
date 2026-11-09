@@ -2584,8 +2584,8 @@ onUnmounted(() => {
               <span class="text-[10px] text-slate-400 font-normal">Pilih item atau tekan Enter</span>
             </div>
 
-            <!-- List Hasil Cocok -->
-            <div v-if="searchSuggestions.length > 0" class="overflow-y-auto max-h-[300px] divide-y divide-slate-100">
+            <!-- List Hasil Cocok (Tablet Viewport-Safe Height) -->
+            <div v-if="searchSuggestions.length > 0" class="overflow-y-auto max-h-[220px] divide-y divide-slate-100">
               <div 
                 v-for="(item, idx) in searchSuggestions" 
                 :key="(item.id || item.barcode || '') + '-' + idx"
@@ -2690,17 +2690,17 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Qty Adjuster & Subtotal Item (MODERN POS FLAT) -->
-          <div class="flex items-center gap-3.5 shrink-0">
+          <!-- Qty Adjuster & Subtotal Item (MODERN POS FLAT - TOUCH ERGONOMIC 1097x686) -->
+          <div class="flex items-center gap-3 shrink-0">
             <!-- Counter Touch (Modern Micro-Rounded Stepper) -->
-            <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-              <button @click.stop="updateQty(index, -1)" class="w-7 h-7 rounded-md bg-white text-slate-800 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold text-sm shadow-2xs transition cursor-pointer">
+            <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
+              <button @click.stop="updateQty(index, -1)" class="w-8 h-8 rounded-lg bg-white text-slate-800 hover:bg-slate-200 active:scale-90 flex items-center justify-center font-bold text-base shadow-2xs transition cursor-pointer">
                 -
               </button>
-              <span @click.stop="openItemEdit(index)" class="w-8 text-center font-mono font-black text-xs text-slate-900 cursor-pointer">
+              <span @click.stop="openItemEdit(index)" class="w-9 text-center font-mono font-black text-xs text-slate-900 cursor-pointer">
                 {{ item.qty }}
               </span>
-              <button @click.stop="updateQty(index, 1)" class="w-7 h-7 rounded-md bg-white text-slate-800 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold text-sm shadow-2xs transition cursor-pointer">
+              <button @click.stop="updateQty(index, 1)" class="w-8 h-8 rounded-lg bg-white text-slate-800 hover:bg-slate-200 active:scale-90 flex items-center justify-center font-bold text-base shadow-2xs transition cursor-pointer">
                 +
               </button>
             </div>
@@ -2712,8 +2712,8 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Tombol Hapus -->
-            <button @click.stop="removeCartItem(index)" class="text-slate-400 hover:text-rose-600 text-sm p-1.5 cursor-pointer font-bold">
+            <!-- Tombol Hapus (Touch Target 32x32) -->
+            <button @click.stop="removeCartItem(index)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-90 transition cursor-pointer font-bold text-sm">
               ✕
             </button>
           </div>
@@ -2819,16 +2819,16 @@ onUnmounted(() => {
       <template v-if="rightMode === 'normal'">
         <!-- Body Panel Kanan: Pelanggan + Info Total (MODERN POS) -->
         <div class="flex-1 overflow-y-auto flex flex-col gap-2.5 p-3">
-          <!-- Kartu Pelanggan Aktif (Modern POS Tile) -->
-          <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center justify-between">
+          <!-- Kartu Pelanggan Aktif (Modern POS Tile - Touch Friendly) -->
+          <div @click="showCustomerModal = true" class="bg-slate-50 hover:bg-blue-50/50 active:scale-[0.99] rounded-xl p-3 border border-slate-200 flex items-center justify-between cursor-pointer transition select-none group">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">👤</div>
+              <div class="w-9 h-9 rounded-xl bg-blue-100 group-hover:bg-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm transition">👤</div>
               <div class="flex flex-col">
-                <span class="text-xs font-black text-slate-900 leading-tight uppercase tracking-wide">{{ selectedCustomer?.name || 'Pelanggan Umum' }}</span>
+                <span class="text-xs font-black text-slate-900 leading-tight uppercase tracking-wide group-hover:text-blue-700 transition">{{ selectedCustomer?.name || 'Pelanggan Umum' }}</span>
                 <span class="text-[10px] text-slate-500 font-medium">{{ selectedCustomer?.id === 1 ? 'Non-Member / Cash' : `Member (${selectedCustomer?.phone || '-'})` }}</span>
               </div>
             </div>
-            <button @click="showCustomerModal = true" class="bg-white border border-slate-200 hover:bg-slate-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer uppercase shadow-2xs">
+            <button type="button" class="bg-white border border-slate-200 group-hover:bg-blue-600 group-hover:text-white text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg transition pointer-events-none uppercase shadow-2xs">
               Pilih
             </button>
           </div>

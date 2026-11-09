@@ -38,6 +38,8 @@
                 min-width: 100%;
                 min-height: 100%;
                 overflow: hidden;
+                overscroll-behavior: none;
+                overscroll-behavior-y: none;
                 margin: 0;
                 padding: 0;
                 background-color: #0f172a;
