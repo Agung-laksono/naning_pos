@@ -169,12 +169,18 @@ function clearCart() {
 // ================= SEARCH & AUTO-SUGGEST DROPDOWN =================
 const searchQuery = ref('');
 const searchInputMode = ref('number'); // 'number' | 'text' (default ke number untuk tablet POS)
+const isSearchFocused = ref(false);
 const isSearchDropdownOpen = ref(false);
 const highlightedIndex = ref(-1);
 const searchUnregisteredQuery = ref(null);
 const scannerTarget = ref('cart'); // 'cart' | 'newProduct'
 const showUnregisteredModal = ref(false);
 const unregisteredBarcode = ref('');
+
+// Status aktif untuk memperluas input memenuhi seluruh header pada tablet
+const isSearchActive = computed(() => {
+  return isSearchFocused.value || isSearchDropdownOpen.value || Boolean(searchQuery.value && String(searchQuery.value).trim().length > 0);
+});
 
 function toggleSearchInputMode() {
   searchInputMode.value = searchInputMode.value === 'number' ? 'text' : 'number';
@@ -209,6 +215,7 @@ function onSearchInput() {
 }
 
 function onSearchFocus() {
+  isSearchFocused.value = true;
   if (String(searchQuery.value || '').trim()) {
     isSearchDropdownOpen.value = true;
   }
@@ -286,8 +293,11 @@ function selectSuggestion(product) {
 function closeSearchDropdown() {
   searchQuery.value = '';
   isSearchDropdownOpen.value = false;
+  isSearchFocused.value = false;
   highlightedIndex.value = -1;
   searchUnregisteredQuery.value = null;
+  const inputEl = document.getElementById('pos-search-input');
+  if (inputEl) inputEl.blur();
 }
 
 function clearSearchInput() {
@@ -303,6 +313,7 @@ function handleClickOutsideSearch(event) {
   const el = document.getElementById('pos-search-container');
   if (el && !el.contains(event.target)) {
     isSearchDropdownOpen.value = false;
+    isSearchFocused.value = false;
   }
 }
 
@@ -2417,8 +2428,8 @@ onUnmounted(() => {
       
       <!-- Header Keranjang: Logo + Search + Tombol Galeri & Scanner (MODERN POS FLAT) -->
       <div class="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0 flex items-center gap-3">
-        <!-- Logo Toko & Tombol Dropdown Menu Navigasi Utama (Square / Toast Style) -->
-        <div id="pos-nav-menu-container" class="relative shrink-0">
+        <!-- Logo Toko & Tombol Dropdown Menu Navigasi Utama (Disembunyikan saat form pencarian aktif melebar) -->
+        <div v-show="!isSearchActive" id="pos-nav-menu-container" class="relative shrink-0">
           <button 
             type="button" 
             @click="showNavMenu = !showNavMenu" 
@@ -2544,16 +2555,28 @@ onUnmounted(() => {
           </transition>
         </div>
 
-        <div class="w-px h-6 bg-slate-200 shrink-0"></div>
+        <div v-show="!isSearchActive" class="w-px h-6 bg-slate-200 shrink-0"></div>
 
         <!-- Search Bar Terintegrasi Icon Kamera Scanner di Kiri & Auto-Suggest Dropdown (MODERN POS FLAT) -->
-        <div id="pos-search-container" class="relative flex-1">
+        <div id="pos-search-container" class="relative flex-1 w-full transition-all duration-200">
+          <!-- Tombol Tutup / Kembali saat Form Pencarian Aktif & Melebar Memenuhi Header -->
+          <button 
+            v-if="isSearchActive"
+            @click="closeSearchDropdown" 
+            type="button"
+            title="Tutup / Batalkan Pencarian" 
+            class="absolute left-1.5 top-1.5 bottom-1.5 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center transition cursor-pointer z-10"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+
           <!-- Tombol Kamera Scanner Cepat di Sisi Kiri Input -->
           <button 
             @click="triggerBarcodeScanner" 
             type="button"
             title="Buka Scanner Barcode Kamera (Sentuh untuk Memindai)" 
-            class="absolute left-1.5 top-1.5 bottom-1.5 w-8 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white flex items-center justify-center transition cursor-pointer z-10"
+            :class="isSearchActive ? 'left-10.5' : 'left-1.5'"
+            class="absolute top-1.5 bottom-1.5 w-8 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white flex items-center justify-center transition-all duration-150 cursor-pointer z-10"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           </button>
@@ -2569,7 +2592,8 @@ onUnmounted(() => {
             @keydown.enter.prevent="handleSearchSubmit"
             :placeholder="searchInputMode === 'number' ? 'Scan barcode / ketik angka...' : 'Ketik nama produk...'"
             autocomplete="off"
-            class="w-full bg-slate-100/90 focus:bg-white text-slate-800 text-xs font-semibold rounded-xl pl-11 pr-20 py-2 focus:outline-none transition border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 placeholder-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            :class="isSearchActive ? 'pl-20 pr-20' : 'pl-11 pr-20'"
+            class="w-full bg-slate-100/90 focus:bg-white text-slate-800 text-xs font-semibold rounded-xl py-2 focus:outline-none transition-all duration-150 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 placeholder-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
 
           <!-- Action di Bagian Kanan Form Search: Clear (✕) & Switcher Mode (123 / ABC) -->
@@ -2662,15 +2686,15 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Tombol Galeri Produk (MODERN POS FLAT) -->
-        <button @click="showGalleryModal = true" class="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition cursor-pointer uppercase">
+        <!-- Tombol Galeri Produk (Disembunyikan saat form pencarian aktif melebar) -->
+        <button v-show="!isSearchActive" @click="showGalleryModal = true" class="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition cursor-pointer uppercase">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
           <span>Galeri</span>
           <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono font-bold">F2</span>
         </button>
 
-        <!-- Badges & Counter Item (MODERN POS FLAT) -->
-        <div class="shrink-0 flex items-center">
+        <!-- Badges & Counter Item (Disembunyikan saat form pencarian aktif melebar) -->
+        <div v-show="!isSearchActive" class="shrink-0 flex items-center">
           <span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
             {{ cart.length }} Item
           </span>
