@@ -4,7 +4,19 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-        <title inertia>{{ config('app.name', 'Rozak Mart') }}</title>
+        @php
+            $storeName = config('app.name', 'Rozak Mart');
+            try {
+                $dbStoreName = \App\Models\Setting::get('store_name');
+                if (is_string($dbStoreName) && trim($dbStoreName) !== '') {
+                    $storeName = trim($dbStoreName);
+                }
+            } catch (\Throwable $e) {
+                // Gunakan nama default jika database belum siap
+            }
+        @endphp
+        <title inertia>{{ $storeName }}</title>
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <!-- PWA Web App Manifest & Standalone Fullscreen Meta Tags -->
         <link rel="manifest" href="/manifest.json">
@@ -12,7 +24,7 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="Rozak Mart">
+        <meta name="apple-mobile-web-app-title" content="{{ $storeName }}">
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
         <script>
@@ -31,22 +43,19 @@
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@500;700;900&display=swap" rel="stylesheet">
 
         <style>
-            /* Mengisi layar tablet secara penuh 100vw x 100vh tanpa letterbox */
             html, body {
-                width: 100vw;
-                height: 100vh;
-                min-width: 100%;
-                min-height: 100%;
-                overflow: hidden;
-                overscroll-behavior: none;
-                overscroll-behavior-y: none;
                 margin: 0;
                 padding: 0;
-                background-color: #0f172a;
-                user-select: none;
-                -webkit-user-select: none;
-                touch-action: manipulation;
+                width: 100%;
+                min-height: 100%;
+                background-color: #f1f5f9;
                 font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            input, textarea, select {
+                user-select: text !important;
+                -webkit-user-select: text !important;
             }
 
             /* Android Material 3 Tap Effect */

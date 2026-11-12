@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SyncController extends Controller
 {
@@ -18,8 +21,9 @@ class SyncController extends Controller
     public function pull(Request $request): JsonResponse
     {
         $since = $request->query('since');
+        $isAdmin = auth()->user()?->isAdmin() ?? false;
 
-        $productsQuery = Product::with('units');
+        $productsQuery = Product::with(['units', 'category']);
         $customersQuery = Customer::query();
 
         if ($since) {
@@ -27,10 +31,15 @@ class SyncController extends Controller
             $customersQuery->where('updated_at', '>=', $since);
         }
 
+        $products = $productsQuery->get();
+        if (!$isAdmin) {
+            $products->each->makeHidden(['cost_price']);
+        }
+
         return response()->json([
             'status' => 'success',
             'server_time' => now()->toIso8601String(),
-            'products' => $productsQuery->get(),
+            'products' => $products,
             'customers' => $customersQuery->get(),
         ]);
     }
@@ -44,45 +53,97 @@ class SyncController extends Controller
         $saved = [];
 
         DB::transaction(function () use ($transactions, &$saved) {
+            $isStockTrackingEnabled = Setting::get('enable_stock_tracking') === 'true';
+
             foreach ($transactions as $data) {
-                if (Transaction::where('invoice_no', $data['invoice_no'])->exists()) {
-                    continue; // Skip duplikat jika sudah pernah di-sync
+                $invoiceNo = $data['invoice_no'] ?? null;
+                $uuid = $data['uuid'] ?? Str::uuid()->toString();
+                if (!$invoiceNo) {
+                    continue;
+                }
+
+                if (Transaction::where('invoice_no', $invoiceNo)->orWhere('uuid', $uuid)->exists()) {
+                    $saved[] = $invoiceNo;
+                    continue; // Idempoten: anggap sudah tersinkron jika duplikat
+                }
+
+                $transactionType = $data['transaction_type'] ?? 'SALE';
+                $customerId = null;
+                if (!empty($data['customer_id'])) {
+                    $cust = Customer::find($data['customer_id']);
+                    $customerId = $cust?->id;
                 }
 
                 $trx = Transaction::create([
-                    'invoice_no' => $data['invoice_no'],
-                    'cashier_name' => $data['cashier_name'] ?? 'Kasir Toko',
-                    'customer_id' => $data['customer_id'] ?? null,
+                    'uuid' => $uuid,
+                    'invoice_no' => $invoiceNo,
+                    'transaction_type' => $transactionType,
+                    'cashier_name' => $data['cashier_name'] ?? auth()->user()?->name ?? 'Kasir Toko',
+                    'customer_id' => $customerId,
                     'customer_name' => $data['customer_name'] ?? 'Pelanggan Umum',
-                    'subtotal' => $data['subtotal'],
-                    'item_discount' => $data['item_discount'] ?? 0,
-                    'global_discount' => $data['global_discount'] ?? 0,
+                    'subtotal' => max(0, (int) ($data['subtotal'] ?? 0)),
+                    'item_discount' => max(0, (int) ($data['item_discount'] ?? 0)),
+                    'global_discount' => max(0, (int) ($data['global_discount'] ?? 0)),
                     'global_discount_note' => $data['global_discount_note'] ?? null,
-                    'grand_total' => $data['grand_total'],
-                    'payment_method' => $data['payment_method'],
-                    'paid_amount' => $data['paid_amount'],
-                    'change_amount' => $data['change_amount'],
+                    'grand_total' => max(0, (int) ($data['grand_total'] ?? 0)),
+                    'admin_fee' => max(0, (int) ($data['admin_fee'] ?? 0)),
+                    'total_cost' => 0,
+                    'payment_method' => $data['payment_method'] ?? 'TUNAI',
+                    'paid_amount' => max(0, (int) ($data['paid_amount'] ?? 0)),
+                    'change_amount' => max(0, (int) ($data['change_amount'] ?? 0)),
                     'status' => 'PAID',
+                    'synced_at' => now(),
                     'created_at' => $data['created_at'] ?? now(),
                 ]);
 
-                if (!empty($data['items'])) {
+                $totalCost = 0;
+                if (!empty($data['items']) && is_array($data['items'])) {
                     foreach ($data['items'] as $it) {
+                        $prod = null;
+                        if ($transactionType === 'SALE') {
+                            if (!empty($it['product_id']) && is_numeric($it['product_id'])) {
+                                $prod = Product::find((int) $it['product_id']);
+                            }
+                            if (!$prod && !empty($it['barcode'])) {
+                                $prod = Product::where('barcode', $it['barcode'])->first();
+                            }
+                        }
+
+                        $qty = max(1, (int) ($it['qty'] ?? 1));
+                        $ratio = max(1, (int) ($it['ratio'] ?? 1));
+                        $unitPrice = max(0, (int) ($it['unit_price'] ?? $it['price'] ?? 0));
+                        $cost = max(0, (int) ($it['cost_price'] ?? $prod?->cost_price ?? 0));
+                        $discount = max(0, (int) ($it['discount'] ?? 0));
+                        $total = max(0, (int) ($it['total'] ?? (($unitPrice * $qty) - $discount)));
+
+                        $totalCost += ($cost * $qty);
+
                         $trx->items()->create([
-                            'product_id' => $it['product_id'] ?? null,
-                            'product_name' => $it['product_name'] ?? $it['name'],
-                            'unit_name' => $it['unit_name'] ?? $it['unit'],
-                            'unit_price' => $it['unit_price'] ?? $it['price'],
-                            'qty' => $it['qty'],
-                            'discount' => $it['discount'] ?? 0,
-                            'total' => $it['total'] ?? (($it['price'] * $it['qty']) - ($it['discount'] ?? 0)),
+                            'product_id' => $prod?->id,
+                            'product_name' => $it['product_name'] ?? $it['name'] ?? 'Produk',
+                            'unit_name' => $it['unit_name'] ?? $it['unit'] ?? 'Pcs',
+                            'unit_price' => $unitPrice,
+                            'cost_price' => $cost,
+                            'ratio' => $ratio,
+                            'qty' => $qty,
+                            'discount' => $discount,
+                            'total' => $total,
                         ]);
+
+                        if ($isStockTrackingEnabled && $transactionType === 'SALE' && $prod) {
+                            $prod->update(['stock' => max(0, $prod->stock - ($qty * $ratio))]);
+                        }
                     }
                 }
 
-                // Tambahkan kasbon jika metode bayar KASBON
-                if ($data['payment_method'] === 'KASBON' && !empty($data['customer_id'])) {
-                    Customer::where('id', $data['customer_id'])->increment('kasbon_balance', $data['grand_total']);
+                if ($transactionType === 'TOP_UP') {
+                    $totalCost = $trx->subtotal;
+                }
+                $trx->update(['total_cost' => $totalCost]);
+
+                // Tambahkan kasbon jika metode bayar KASBON pada member valid
+                if (($data['payment_method'] ?? '') === 'KASBON' && $customerId && $customerId !== 1) {
+                    Customer::where('id', $customerId)->increment('kasbon_balance', $trx->grand_total);
                 }
 
                 $saved[] = $trx->invoice_no;
@@ -106,25 +167,56 @@ class SyncController extends Controller
 
         DB::transaction(function () use ($products, &$saved) {
             foreach ($products as $pData) {
-                if (Product::where('barcode', $pData['barcode'])->exists()) {
+                $barcode = trim((string) ($pData['barcode'] ?? ''));
+                if (!$barcode) {
                     continue;
                 }
 
+                $existing = Product::where('barcode', $barcode)->first();
+                if ($existing) {
+                    $saved[] = $existing->barcode;
+                    continue;
+                }
+
+                $categoryId = $pData['category_id'] ?? null;
+                if (!$categoryId && !empty($pData['category'])) {
+                    $catName = is_array($pData['category']) ? ($pData['category']['name'] ?? 'Lainnya') : (string) $pData['category'];
+                    $cat = Category::firstOrCreate(
+                        ['name' => $catName],
+                        ['icon' => $pData['icon'] ?? '📦']
+                    );
+                    $categoryId = $cat->id;
+                }
+
+                $units = $pData['units'] ?? [];
+                $baseUnit = $pData['base_unit'] ?? $pData['unit_name'] ?? ($units[0]['name'] ?? 'Pcs');
+
                 $product = Product::create([
-                    'barcode' => $pData['barcode'],
-                    'name' => $pData['name'],
-                    'category' => $pData['category'] ?? 'Lainnya',
+                    'barcode' => $barcode,
+                    'name' => $pData['name'] ?? 'Produk Baru',
+                    'category_id' => $categoryId,
                     'icon' => $pData['icon'] ?? '📦',
+                    'base_unit' => $baseUnit,
+                    'stock' => max(0, (int) ($pData['stock'] ?? 0)),
+                    'cost_price' => max(0, (int) ($pData['cost_price'] ?? 0)),
                 ]);
 
-                if (!empty($pData['units'])) {
-                    foreach ($pData['units'] as $u) {
+                if (!empty($units) && is_array($units)) {
+                    foreach ($units as $idx => $u) {
                         $product->units()->create([
-                            'name' => $u['name'],
-                            'price' => $u['price'],
-                            'ratio' => $u['ratio'] ?? 1,
+                            'name' => $u['name'] ?? 'Pcs',
+                            'price' => max(0, (int) ($u['price'] ?? 0)),
+                            'ratio' => max(1, (int) ($u['ratio'] ?? 1)),
+                            'is_base' => $u['is_base'] ?? ($idx === 0),
                         ]);
                     }
+                } else {
+                    $product->units()->create([
+                        'name' => $baseUnit,
+                        'price' => max(0, (int) ($pData['price'] ?? 0)),
+                        'ratio' => 1,
+                        'is_base' => true,
+                    ]);
                 }
 
                 $saved[] = $product->barcode;
@@ -138,4 +230,3 @@ class SyncController extends Controller
         ]);
     }
 }
-

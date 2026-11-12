@@ -19,8 +19,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
+        if (User::exists()) {
+            return redirect()->route('login')->with('status', 'Registrasi publik dinonaktifkan. Hubungi Owner Toko untuk pembuatan akun kasir.');
+        }
+
         return Inertia::render('Auth/Register');
     }
 
@@ -31,6 +35,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (User::exists()) {
+            abort(403, 'Registrasi publik dinonaktifkan. Akun kasir hanya dapat dibuat oleh Owner Toko.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,

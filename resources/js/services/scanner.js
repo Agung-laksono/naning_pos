@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { showAlert } from '@/utils/popup';
 
 export class ScannerService {
   static isNative() {
@@ -14,7 +15,7 @@ export class ScannerService {
       const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
       const { camera } = await BarcodeScanner.requestPermissions();
       if (camera !== 'granted') {
-        alert('Izin kamera ditolak. Harap izinkan akses kamera di pengaturan perangkat.');
+        await showAlert('Izin kamera ditolak. Harap izinkan akses kamera di pengaturan perangkat.');
         return null;
       }
 

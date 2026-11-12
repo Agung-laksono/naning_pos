@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             ['key' => 'enable_stock_tracking', 'value' => 'false'], // Saklar Stok (Default OFF)
             ['key' => 'enable_hpp_profit', 'value' => 'false'],     // Saklar HPP & Laba (Default OFF)
             ['key' => 'enable_cashier_shifts', 'value' => 'false'], // Saklar Shift Laci (Default OFF)
+            ['key' => 'cashier_can_manage_products', 'value' => 'false'],        // Saklar Kasir Tambah/Edit Barang
+            ['key' => 'cashier_can_view_financial_summary', 'value' => 'false'], // Saklar Kasir Rekap Keuangan
             ['key' => 'store_name', 'value' => 'TPKmart'],
             ['key' => 'store_address', 'value' => 'Jl. Melati No. 12, Kel. Sukamaju'],
             ['key' => 'store_phone', 'value' => '0812-3456-7890'],
@@ -45,12 +47,23 @@ class DatabaseSeeder extends Seeder
             Category::firstOrCreate(['name' => $c['name']], $c);
         }
 
-        // 3. User Kasir Default
-        User::firstOrCreate(
+        // 3. User Default (Owner / Super Admin & Kasir)
+        User::updateOrCreate(
+            ['email' => 'owner@tpkmart.local'],
+            [
+                'name' => 'Owner Toko',
+                'password' => Hash::make('owner123'),
+                'role' => 'admin',
+                'image' => null,
+            ]
+        );
+
+        User::updateOrCreate(
             ['email' => 'kasir@tpkmart.local'],
             [
                 'name' => 'Siska Anggraeni',
                 'password' => Hash::make('password123'),
+                'role' => 'cashier',
                 'image' => null,
             ]
         );

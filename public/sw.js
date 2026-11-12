@@ -1,8 +1,7 @@
 // Rozak Mart POS - Progressive Web App Service Worker
-const CACHE_NAME = 'rozak-mart-pos-v18';
+const CACHE_NAME = 'rozak-mart-pos-v79';
+const AUTH_PATHS = ['/login', '/register', '/logout', '/profile', '/forgot-password', '/reset-password'];
 const STATIC_ASSETS = [
-  '/',
-  '/pos',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -55,8 +54,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Static Assets (Vite build, icons, fonts) -> Cache-First
-  if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/') || url.hostname.includes('fonts.')) {
+  // 1. Static Assets & Banner Media (Vite build, icons, uploads/banners, fonts) -> Cache-First
+  if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/uploads/') || url.hostname.includes('fonts.')) {
+    // Range requests (misal video streaming/seeking) diteruskan ke network tanpa trigger cache API error
+    if (request.headers.has('range')) {
+      return;
+    }
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -76,12 +79,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Navigasi Halaman Utama (/pos, /) -> Network-First dengan Fallback ke Cache
+  // 2. Navigasi Halaman Utama (/pos, /) -> Network-First dengan Fallback ke Cache (lewati rute auth & redirect)
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    const reqUrl = new URL(request.url);
+    const isAuthRoute = AUTH_PATHS.some((p) => reqUrl.pathname.startsWith(p));
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (
+            !isAuthRoute &&
+            networkResponse &&
+            networkResponse.status === 200 &&
+            !networkResponse.redirected
+          ) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseToCache);
@@ -90,7 +100,12 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Jika offline atau jaringan putus, ambil dari cache
+          if (isAuthRoute) {
+            return new Response('Offline: silakan periksa koneksi server untuk login.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
+          }
           return caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
               return cachedResponse;

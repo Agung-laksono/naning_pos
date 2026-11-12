@@ -15,10 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Percayai semua proxy (termasuk Ngrok) agar protokol HTTPS terdeteksi
         $middleware->trustProxies(at: '*');
+        $middleware->statefulApi();
 
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'pos/display/sync',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

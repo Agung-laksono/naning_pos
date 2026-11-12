@@ -8,3 +8,15 @@ db.version(1).stores({
   offline_hold_orders: '++id, name, created_at',
 });
 
+db.version(2).stores({
+  customer_banners: '++id, title, image, created_at',
+});
+
+db.version(3).stores({
+  customer_banners: '++id, title, image, placement, created_at',
+});
+
+db.version(4).stores({
+  customer_banners: '++id, title, type, url, image, placement, created_at',
+});
+
