@@ -13,6 +13,7 @@ use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -1705,5 +1706,78 @@ class PosController extends Controller
             'success' => 'Shift kasir ditutup. Selisih kas: Rp ' . number_format($difference, 0, ',', '.'),
             'active_shift' => null,
         ]);
+    }
+
+    /**
+     * Terapkan Update Aplikasi di Hosting (Owner Only):
+     * - mode 'git_pull': jalankan git pull origin main (jika exec aktif) + migrate + optimize:clear
+     * - mode 'apply': jalankan migrate --force + optimize:clear via Artisan::call
+     */
+    public function applySystemUpdate(Request $request)
+    {
+        if (!(auth()->user()?->isAdmin() ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Owner yang dapat menjalankan update sistem.',
+            ], 403);
+        }
+
+        $mode = $request->input('mode', 'apply');
+        $gitOutput = '';
+
+        if ($mode === 'git_pull') {
+            $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+            if (!function_exists('exec') || in_array('exec', $disabled, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Fungsi exec() dinonaktifkan oleh server hosting. Silakan klik Pull di menu Git cPanel terlebih dahulu, lalu gunakan tombol "Terapkan Update (Migrate & Clear Cache)".',
+                ], 422);
+            }
+
+            if (!is_dir(base_path('.git'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Folder .git tidak ditemukan di server hosting. Gunakan Pull dari panel hosting lalu klik "Terapkan Update".',
+                ], 422);
+            }
+
+            $outputLines = [];
+            $exitCode = 0;
+            $cmd = 'cd ' . escapeshellarg(base_path()) . ' && git pull origin main 2>&1';
+            exec($cmd, $outputLines, $exitCode);
+            $gitOutput = trim(implode("\n", $outputLines));
+
+            if ($exitCode !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Git pull gagal dijalankan di server.',
+                    'git_output' => $gitOutput,
+                ], 500);
+            }
+        }
+
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+            $migrateOutput = trim(Artisan::output());
+
+            Artisan::call('optimize:clear');
+            $cacheOutput = trim(Artisan::output());
+
+            return response()->json([
+                'success' => true,
+                'message' => $mode === 'git_pull'
+                    ? 'Update dari Git (main), migrasi database, dan pembersihan cache berhasil!'
+                    : 'Migrasi database dan pembersihan cache server berhasil diterapkan!',
+                'git_output' => $gitOutput,
+                'migrate_output' => $migrateOutput,
+                'cache_output' => $cacheOutput,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menerapkan update server: ' . $e->getMessage(),
+                'git_output' => $gitOutput,
+            ], 500);
+        }
     }
 }

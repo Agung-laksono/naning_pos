@@ -2995,6 +2995,50 @@ function reloadApp() {
   }
 }
 
+const isUpdatingSystem = ref(false);
+const systemUpdateLog = ref('');
+
+async function runSystemUpdate(mode = 'apply') {
+  if (!props.authCashier?.is_admin || isUpdatingSystem.value) return;
+
+  const confirmMsg = mode === 'git_pull'
+    ? 'Tarik update terbaru dari GitHub (branch main), jalankan migrasi database, dan bersihkan cache server sekarang?'
+    : 'Terapkan update server (jalankan migrasi database & bersihkan cache Laravel) sekarang?';
+
+  if (!(await showConfirm(confirmMsg, { title: 'Update Aplikasi', variant: 'info', confirmText: 'Ya, Jalankan' }))) {
+    return;
+  }
+
+  isUpdatingSystem.value = true;
+  systemUpdateLog.value = '';
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const res = await http.post('/pos/system/update', { mode }, { headers: { Accept: 'application/json' } });
+    const data = res?.data || {};
+    const parts = [data.git_output, data.migrate_output, data.cache_output].filter(Boolean);
+    systemUpdateLog.value = parts.join('\n\n');
+    playBeepSound('success');
+    await showAlert(data.message || 'Update server berhasil diterapkan!', { title: 'Update Berhasil', variant: 'success' });
+
+    if ('caches' in window) {
+      try {
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+      } catch (e) {}
+    }
+    reloadApp();
+  } catch (err) {
+    const errData = err?.response?.data || {};
+    if (errData.git_output) {
+      systemUpdateLog.value = errData.git_output;
+    }
+    playBeepSound('warning');
+    await showAlert(errData.message || 'Gagal menjalankan update sistem di server.', { title: 'Update Gagal', variant: 'danger' });
+  } finally {
+    isUpdatingSystem.value = false;
+  }
+}
+
 // ================= MANAJEMEN AKUN KASIR (OWNER ONLY) =================
 const cashierForm = ref({
   name: '',
@@ -6530,7 +6574,7 @@ onUnmounted(() => {
 
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Versi Service Worker:</span>
-                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v80</span>
+                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v81</span>
                 </div>
               </div>
 
@@ -6561,6 +6605,37 @@ onUnmounted(() => {
                 >
                   Reload
                 </button>
+              </div>
+
+              <!-- Update Aplikasi di Server Hosting (Khusus Owner) -->
+              <div v-if="props.authCashier?.is_admin" class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200 flex flex-col gap-2.5">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <div class="text-xs font-bold text-blue-950">Update Aplikasi Server (Branch: main)</div>
+                    <div class="text-[10px] text-blue-700 mt-0.5 leading-relaxed">
+                      Tarik kode & build terbaru dari Git atau terapkan migrasi + bersihkan cache Laravel setelah Pull dari cPanel.
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    :disabled="isUpdatingSystem"
+                    @click="runSystemUpdate('git_pull')"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] px-3 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>⬇️</span> {{ isUpdatingSystem ? 'Memproses...' : 'Pull Git (main) & Terapkan' }}
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="isUpdatingSystem"
+                    @click="runSystemUpdate('apply')"
+                    class="bg-white hover:bg-blue-100 disabled:opacity-50 text-blue-800 border border-blue-300 text-[11px] px-3 py-1.5 rounded-lg font-bold shadow-2xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>⚙️</span> {{ isUpdatingSystem ? 'Memproses...' : 'Terapkan Update (Migrate & Clear Cache)' }}
+                  </button>
+                </div>
+                <pre v-if="systemUpdateLog" class="text-[10px] font-mono bg-slate-900 text-emerald-300 p-2.5 rounded-lg overflow-x-auto max-h-28 whitespace-pre-wrap">{{ systemUpdateLog }}</pre>
               </div>
             </div>
 

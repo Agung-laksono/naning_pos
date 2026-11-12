@@ -1,0 +1,1 @@
+function e(e,t=`RM`){let n=String(e||``).trim();if(!n)return t;let r=n.split(/\s+/).filter(Boolean);return r.length>=2?`${r[0][0]}${r[1][0]}`.toUpperCase():n.slice(0,2).toUpperCase()}export{e as t};

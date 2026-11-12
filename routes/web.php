@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/pos/qris/generate', [PosController::class, 'generateQris'])->name('pos.qris.generate');
     Route::get('/pos/qris/check/{orderId}', [PosController::class, 'checkQrisStatus'])->name('pos.qris.check');
     Route::post('/pos/settings', [PosController::class, 'updateSettings'])->name('pos.settings.update');
+    Route::post('/pos/system/update', [PosController::class, 'applySystemUpdate'])->name('pos.system.update');
     Route::post('/pos/cashiers', [PosController::class, 'storeCashier'])->name('pos.cashiers.store');
     Route::put('/pos/cashiers/{id}', [PosController::class, 'updateCashier'])->name('pos.cashiers.update');
     Route::delete('/pos/cashiers/{id}', [PosController::class, 'deleteCashier'])->name('pos.cashiers.delete');
