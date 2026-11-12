@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\DatabaseBackupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -1778,6 +1779,154 @@ class PosController extends Controller
                 'message' => 'Gagal menerapkan update server: ' . $e->getMessage(),
                 'git_output' => $gitOutput,
             ], 500);
+        }
+    }
+
+    private function ensureOwnerJson()
+    {
+        if (!(auth()->user()?->isAdmin() ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Owner yang dapat mengelola backup & restore database.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    public function listBackups(DatabaseBackupService $service)
+    {
+        if ($denied = $this->ensureOwnerJson()) {
+            return $denied;
+        }
+
+        return response()->json([
+            'success' => true,
+            'driver' => DB::getDriverName(),
+            'backups' => $service->listBackups(),
+        ]);
+    }
+
+    public function createBackup(DatabaseBackupService $service)
+    {
+        if ($denied = $this->ensureOwnerJson()) {
+            return $denied;
+        }
+
+        try {
+            $result = $service->createJsonBackup();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Backup \"{$result['filename']}\" berhasil dibuat ({$result['total_rows']} baris data).",
+                'backup' => $result,
+                'backups' => $service->listBackups(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat backup: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function downloadBackup(string $filename, DatabaseBackupService $service)
+    {
+        if (!(auth()->user()?->isAdmin() ?? false)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        try {
+            $path = $service->getBackupPath($filename);
+
+            return response()->download($path, basename($path));
+        } catch (\Throwable $e) {
+            abort(404, $e->getMessage());
+        }
+    }
+
+    public function uploadBackup(Request $request, DatabaseBackupService $service)
+    {
+        if ($denied = $this->ensureOwnerJson()) {
+            return $denied;
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:51200',
+            'restore_now' => 'nullable|boolean',
+        ]);
+
+        try {
+            $stored = $service->storeUploadedBackup($request->file('file'));
+            $restoreInfo = null;
+
+            if ($request->boolean('restore_now')) {
+                $restoreInfo = $service->restoreFromFilename($stored['filename']);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $restoreInfo
+                    ? 'File backup berhasil diunggah dan langsung di-restore ke database!'
+                    : "File backup \"{$stored['filename']}\" berhasil diunggah ke server.",
+                'uploaded' => $stored['filename'],
+                'restore' => $restoreInfo,
+                'backups' => $service->listBackups(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function restoreBackup(Request $request, DatabaseBackupService $service)
+    {
+        if ($denied = $this->ensureOwnerJson()) {
+            return $denied;
+        }
+
+        $validated = $request->validate([
+            'filename' => 'required|string',
+        ]);
+
+        try {
+            $result = $service->restoreFromFilename($validated['filename']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Database berhasil di-restore! Snapshot pengaman sebelumnya sudah disimpan otomatis.',
+                'restore' => $result,
+                'backups' => $service->listBackups(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restore gagal: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function deleteBackup(string $filename, DatabaseBackupService $service)
+    {
+        if ($denied = $this->ensureOwnerJson()) {
+            return $denied;
+        }
+
+        try {
+            $service->deleteBackup($filename);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Backup \"{$filename}\" dihapus.",
+                'backups' => $service->listBackups(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
         }
     }
 }

@@ -2938,6 +2938,11 @@ function openSettingsModal() {
     cashier_can_view_financial_summary: props.settings?.cashier_can_view_financial_summary === 'true',
   };
   loadOfflineStats();
+  if (props.authCashier?.is_admin) {
+    fetchBackups();
+  } else if (['profile', 'payment', 'features'].includes(activeSettingsTab.value)) {
+    activeSettingsTab.value = 'printer';
+  }
   showSettingsModal.value = true;
 }
 
@@ -3036,6 +3041,139 @@ async function runSystemUpdate(mode = 'apply') {
     await showAlert(errData.message || 'Gagal menjalankan update sistem di server.', { title: 'Update Gagal', variant: 'danger' });
   } finally {
     isUpdatingSystem.value = false;
+  }
+}
+
+const backupsList = ref([]);
+const dbDriver = ref('');
+const isBackupBusy = ref(false);
+const backupFileInputRef = ref(null);
+const uploadRestoreImmediately = ref(false);
+
+async function fetchBackups() {
+  if (!props.authCashier?.is_admin) return;
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const res = await http.get('/pos/system/backups', { headers: { Accept: 'application/json' } });
+    backupsList.value = res?.data?.backups || [];
+    dbDriver.value = res?.data?.driver || '';
+  } catch (e) {
+    console.warn('Gagal memuat daftar backup:', e);
+  }
+}
+
+async function createServerBackup(downloadAfter = false) {
+  if (!props.authCashier?.is_admin || isBackupBusy.value) return;
+  isBackupBusy.value = true;
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const res = await http.post('/pos/system/backups', {}, { headers: { Accept: 'application/json' } });
+    const data = res?.data || {};
+    backupsList.value = data.backups || backupsList.value;
+    playBeepSound('success');
+    if (downloadAfter && data.backup?.filename) {
+      downloadBackupFile(data.backup.filename);
+    }
+    await showAlert(data.message || 'Backup database berhasil dibuat.', { title: 'Backup Berhasil', variant: 'success' });
+  } catch (err) {
+    playBeepSound('warning');
+    await showAlert(err?.response?.data?.message || 'Gagal membuat backup database.', { title: 'Backup Gagal', variant: 'danger' });
+  } finally {
+    isBackupBusy.value = false;
+  }
+}
+
+function downloadBackupFile(filename) {
+  if (!filename || typeof window === 'undefined') return;
+  window.location.href = `/pos/system/backups/download/${encodeURIComponent(filename)}`;
+}
+
+function triggerBackupUpload(restoreNow = false) {
+  uploadRestoreImmediately.value = restoreNow;
+  if (backupFileInputRef.value) {
+    backupFileInputRef.value.value = '';
+    backupFileInputRef.value.click();
+  }
+}
+
+async function handleBackupFileSelected(e) {
+  const file = e?.target?.files?.[0];
+  if (!file || isBackupBusy.value) return;
+
+  if (uploadRestoreImmediately.value) {
+    const ok = await showConfirm(
+      `Unggah file "${file.name}" dan langsung TIMPA (Restore) seluruh isi database saat ini?\n\nSnapshot pengaman otomatis akan disimpan sebelum restore.`,
+      { title: 'Konfirmasi Unggah & Restore', variant: 'danger', confirmText: 'Ya, Unggah & Restore' }
+    );
+    if (!ok) return;
+  }
+
+  isBackupBusy.value = true;
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('restore_now', uploadRestoreImmediately.value ? '1' : '0');
+
+    const res = await http.post('/pos/system/backups/upload', formData, {
+      headers: { Accept: 'application/json', 'Content-Type': 'multipart/form-data' },
+    });
+    const data = res?.data || {};
+    backupsList.value = data.backups || backupsList.value;
+    playBeepSound('success');
+    await showAlert(data.message || 'File backup berhasil diunggah.', { title: 'Berhasil', variant: 'success' });
+    if (uploadRestoreImmediately.value) {
+      reloadApp();
+    }
+  } catch (err) {
+    playBeepSound('warning');
+    await showAlert(err?.response?.data?.message || 'Gagal mengunggah file backup.', { title: 'Unggah Gagal', variant: 'danger' });
+  } finally {
+    isBackupBusy.value = false;
+    if (backupFileInputRef.value) backupFileInputRef.value.value = '';
+  }
+}
+
+async function restoreBackupFile(filename) {
+  if (!props.authCashier?.is_admin || isBackupBusy.value) return;
+  const ok = await showConfirm(
+    `Restore database dari "${filename}"?\n\nSeluruh data aktif saat ini akan diganti dengan isi backup tersebut. Snapshot pengaman otomatis akan dibuat terlebih dahulu.`,
+    { title: 'Restore Database', variant: 'danger', confirmText: 'Ya, Restore Sekarang' }
+  );
+  if (!ok) return;
+
+  isBackupBusy.value = true;
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const res = await http.post('/pos/system/backups/restore', { filename }, { headers: { Accept: 'application/json' } });
+    const data = res?.data || {};
+    backupsList.value = data.backups || backupsList.value;
+    playBeepSound('success');
+    await showAlert(data.message || 'Database berhasil di-restore!', { title: 'Restore Berhasil', variant: 'success' });
+    reloadApp();
+  } catch (err) {
+    playBeepSound('warning');
+    await showAlert(err?.response?.data?.message || 'Gagal melakukan restore database.', { title: 'Restore Gagal', variant: 'danger' });
+  } finally {
+    isBackupBusy.value = false;
+  }
+}
+
+async function deleteBackupFile(filename) {
+  if (!props.authCashier?.is_admin || isBackupBusy.value) return;
+  const ok = await showConfirm(`Hapus file backup "${filename}" dari server?`, { title: 'Hapus Backup', variant: 'danger', confirmText: 'Hapus' });
+  if (!ok) return;
+
+  isBackupBusy.value = true;
+  try {
+    const http = window.axios || (await import('axios')).default;
+    const res = await http.delete(`/pos/system/backups/${encodeURIComponent(filename)}`, { headers: { Accept: 'application/json' } });
+    backupsList.value = res?.data?.backups || backupsList.value;
+    playBeepSound('delete');
+  } catch (err) {
+    await showAlert(err?.response?.data?.message || 'Gagal menghapus file backup.', { title: 'Gagal', variant: 'danger' });
+  } finally {
+    isBackupBusy.value = false;
   }
 }
 
@@ -6158,7 +6296,9 @@ onUnmounted(() => {
             </div>
             <div>
               <h3 class="font-bold text-sm text-slate-900 leading-tight">Pengaturan Sistem {{ storeName }}</h3>
-              <p class="text-[10px] text-slate-500">Sesuaikan profil toko, QRIS, printer struk, dan saklar fitur</p>
+              <p class="text-[10px] text-slate-500">
+                {{ props.authCashier?.is_admin ? 'Sesuaikan profil toko, QRIS, printer struk, dan saklar fitur' : 'Sesuaikan printer struk dan status offline perangkat' }}
+              </p>
             </div>
           </div>
           <button @click="showSettingsModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
@@ -6170,6 +6310,7 @@ onUnmounted(() => {
           <!-- Sidebar Navigasi Tab Kiri (28%) -->
           <div class="w-[28%] bg-slate-50 border-r border-slate-200 p-2.5 flex flex-col gap-1 shrink-0 overflow-y-auto">
             <button 
+              v-if="props.authCashier?.is_admin"
               type="button" 
               @click="activeSettingsTab = 'profile'"
               :class="activeSettingsTab === 'profile' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
@@ -6179,6 +6320,7 @@ onUnmounted(() => {
               <span>Profil Toko</span>
             </button>
             <button 
+              v-if="props.authCashier?.is_admin"
               type="button" 
               @click="activeSettingsTab = 'payment'"
               :class="activeSettingsTab === 'payment' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
@@ -6197,6 +6339,7 @@ onUnmounted(() => {
               <span>Printer Struk</span>
             </button>
             <button 
+              v-if="props.authCashier?.is_admin"
               type="button" 
               @click="activeSettingsTab = 'features'"
               :class="activeSettingsTab === 'features' ? 'bg-white text-blue-600 font-bold shadow-2xs border border-slate-200' : 'text-slate-600 hover:bg-slate-100 border border-transparent'"
@@ -6219,8 +6362,8 @@ onUnmounted(() => {
           <!-- Konten Tab Sisi Kanan (72%) -->
           <div class="flex-1 p-5 overflow-y-auto">
             
-            <!-- TAB 1: PROFIL TOKO -->
-            <div v-if="activeSettingsTab === 'profile'" class="flex flex-col gap-3.5">
+            <!-- TAB 1: PROFIL TOKO (OWNER ONLY) -->
+            <div v-if="activeSettingsTab === 'profile' && props.authCashier?.is_admin" class="flex flex-col gap-3.5">
               <div class="border-b border-slate-100 pb-2">
                 <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Identitas & Kontak Toko</h4>
                 <p class="text-[11px] text-slate-500">Informasi ini dicetak pada bagian atas (header) struk belanja pelanggan</p>
@@ -6278,8 +6421,8 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- TAB 2: QRIS & PEMBAYARAN -->
-            <div v-if="activeSettingsTab === 'payment'" class="flex flex-col gap-3.5">
+            <!-- TAB 2: QRIS & PEMBAYARAN (OWNER ONLY) -->
+            <div v-if="activeSettingsTab === 'payment' && props.authCashier?.is_admin" class="flex flex-col gap-3.5">
               <div class="border-b border-slate-100 pb-2">
                 <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Metode Pembayaran QRIS</h4>
                 <p class="text-[11px] text-slate-500">Konfigurasi dual mode QRIS Toko & Integrasi Payment Gateway</p>
@@ -6574,7 +6717,7 @@ onUnmounted(() => {
 
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Versi Service Worker:</span>
-                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v81</span>
+                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v83</span>
                 </div>
               </div>
 
@@ -6636,6 +6779,106 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <pre v-if="systemUpdateLog" class="text-[10px] font-mono bg-slate-900 text-emerald-300 p-2.5 rounded-lg overflow-x-auto max-h-28 whitespace-pre-wrap">{{ systemUpdateLog }}</pre>
+              </div>
+
+              <!-- Backup, Unggah & Restore Database (Khusus Owner) -->
+              <div v-if="props.authCashier?.is_admin" class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200 flex flex-col gap-2.5">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <div class="text-xs font-bold text-emerald-950">Backup, Unggah & Restore Database</div>
+                    <div class="text-[10px] text-emerald-700 mt-0.5 leading-relaxed">
+                      Format <span class="font-mono font-bold">.json</span> kompatibel lintas SQLite & MySQL<span v-if="dbDriver"> (Server aktif: <strong class="uppercase">{{ dbDriver }}</strong>)</span>. Restore mendukung file <span class="font-mono font-bold">.json</span> atau <span class="font-mono font-bold">.sqlite</span>.
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  ref="backupFileInputRef"
+                  type="file"
+                  accept=".json,.sqlite,.db"
+                  class="hidden"
+                  @change="handleBackupFileSelected"
+                />
+
+                <div class="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    :disabled="isBackupBusy"
+                    @click="createServerBackup(false)"
+                    class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>💾</span> {{ isBackupBusy ? 'Memproses...' : 'Backup di Server' }}
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="isBackupBusy"
+                    @click="createServerBackup(true)"
+                    class="bg-white hover:bg-emerald-100 disabled:opacity-50 text-emerald-800 border border-emerald-300 text-[11px] px-2.5 py-1.5 rounded-lg font-bold shadow-2xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>⬇️</span> Unduh Backup (.json)
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="isBackupBusy"
+                    @click="triggerBackupUpload(false)"
+                    class="bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-700 border border-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg font-bold shadow-2xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>📤</span> Unggah File
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="isBackupBusy"
+                    @click="triggerBackupUpload(true)"
+                    class="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>♻️</span> Unggah & Restore
+                  </button>
+                </div>
+
+                <div v-if="backupsList.length > 0" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+                  <div
+                    v-for="b in backupsList"
+                    :key="b.filename"
+                    class="bg-white border border-emerald-200/80 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
+                  >
+                    <div class="min-w-0">
+                      <div class="text-[11px] font-mono font-bold text-slate-800 truncate">{{ b.filename }}</div>
+                      <div class="text-[10px] text-slate-500">{{ b.type }} · {{ b.size_human }} · {{ b.created_at }}</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        :disabled="isBackupBusy"
+                        @click="downloadBackupFile(b.filename)"
+                        class="px-2 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md cursor-pointer"
+                        title="Unduh Backup"
+                      >
+                        Unduh
+                      </button>
+                      <button
+                        type="button"
+                        :disabled="isBackupBusy"
+                        @click="restoreBackupFile(b.filename)"
+                        class="px-2 py-1 text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-md cursor-pointer"
+                        title="Restore Database"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        :disabled="isBackupBusy"
+                        @click="deleteBackupFile(b.filename)"
+                        class="px-2 py-1 text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-md cursor-pointer"
+                        title="Hapus File Backup"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-[10px] text-emerald-700/80 italic">
+                  Belum ada file backup tersimpan di server. Klik "Backup di Server" atau "Unggah File".
+                </div>
               </div>
             </div>
 

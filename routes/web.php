@@ -47,6 +47,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/qris/check/{orderId}', [PosController::class, 'checkQrisStatus'])->name('pos.qris.check');
     Route::post('/pos/settings', [PosController::class, 'updateSettings'])->name('pos.settings.update');
     Route::post('/pos/system/update', [PosController::class, 'applySystemUpdate'])->name('pos.system.update');
+    Route::get('/pos/system/backups', [PosController::class, 'listBackups'])->name('pos.system.backups.list');
+    Route::post('/pos/system/backups', [PosController::class, 'createBackup'])->name('pos.system.backups.create');
+    Route::get('/pos/system/backups/download/{filename}', [PosController::class, 'downloadBackup'])->name('pos.system.backups.download');
+    Route::post('/pos/system/backups/upload', [PosController::class, 'uploadBackup'])->name('pos.system.backups.upload');
+    Route::post('/pos/system/backups/restore', [PosController::class, 'restoreBackup'])->name('pos.system.backups.restore');
+    Route::delete('/pos/system/backups/{filename}', [PosController::class, 'deleteBackup'])->name('pos.system.backups.delete');
     Route::post('/pos/cashiers', [PosController::class, 'storeCashier'])->name('pos.cashiers.store');
     Route::put('/pos/cashiers/{id}', [PosController::class, 'updateCashier'])->name('pos.cashiers.update');
     Route::delete('/pos/cashiers/{id}', [PosController::class, 'deleteCashier'])->name('pos.cashiers.delete');
