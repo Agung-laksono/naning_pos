@@ -1751,22 +1751,48 @@ function removeGlobalDiscount() {
 const availableUnits = ref([
   'Pcs', 'Bungkus', 'Sachet', 'Botol', 'Kg', 'Kaleng', 'Dus', 'Renceng', 'Slop', 'Bal', 'Butir', 'Liter', 'Ikat'
 ]);
-const showQuickAddUnit = ref(false);
+const showQuickAddUnitModal = ref(false);
 const quickUnitInput = ref('');
+const quickUnitInputRef = ref(null);
+const quickUnitTargetType = ref('base');
+const quickUnitTargetIndex = ref(null);
+const unitPresetSuggestions = ['Pack', 'Strip', 'Box', 'Lusin', 'Kodi', 'Gram', 'Karung', 'Galon'];
 
-function quickAddUnit(targetType = 'base', unitIndex = null) {
-  const u = quickUnitInput.value.trim();
-  if (!u) return;
-  if (!availableUnits.value.includes(u)) {
-    availableUnits.value.push(u);
-  }
-  if (targetType === 'base') {
-    newProd.value.unit = u;
-  } else if (targetType === 'multi' && unitIndex !== null && newProd.value.extraUnits[unitIndex]) {
-    newProd.value.extraUnits[unitIndex].name = u;
-  }
+function openQuickAddUnit(targetType = 'base', unitIndex = null) {
+  quickUnitTargetType.value = targetType;
+  quickUnitTargetIndex.value = unitIndex;
   quickUnitInput.value = '';
-  showQuickAddUnit.value = false;
+  showQuickAddUnitModal.value = true;
+  nextTick(() => {
+    quickUnitInputRef.value?.focus();
+  });
+}
+
+function saveQuickUnit() {
+  const u = quickUnitInput.value.trim();
+  if (!u) {
+    showAlert('Nama satuan tidak boleh kosong!');
+    return;
+  }
+
+  const existing = availableUnits.value.find(item => item.toLowerCase() === u.toLowerCase());
+  const selectedUnit = existing || u;
+  if (!existing) {
+    availableUnits.value.push(selectedUnit);
+  }
+
+  if (quickUnitTargetType.value === 'base') {
+    newProd.value.unit = selectedUnit;
+  } else if (
+    quickUnitTargetType.value === 'multi' &&
+    quickUnitTargetIndex.value !== null &&
+    newProd.value.extraUnits[quickUnitTargetIndex.value]
+  ) {
+    newProd.value.extraUnits[quickUnitTargetIndex.value].name = selectedUnit;
+  }
+
+  quickUnitInput.value = '';
+  showQuickAddUnitModal.value = false;
 }
 
 // ================= MASTER KATEGORI & QUICK ADD KATEGORI =================
@@ -4572,25 +4598,14 @@ onUnmounted(() => {
                 <div class="col-span-5">
                   <div class="flex justify-between items-center mb-0.5">
                     <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Satuan Dasar:</label>
-                    <button type="button" @click="showQuickAddUnit = !showQuickAddUnit" class="text-[9px] text-blue-600 font-bold hover:underline uppercase cursor-pointer">➕ Satuan</button>
+                    <button type="button" @click="openQuickAddUnit('base')" class="text-[9px] text-blue-600 font-bold hover:underline flex items-center gap-0.5 uppercase cursor-pointer">
+                      <span>➕</span> Satuan
+                    </button>
                   </div>
                   <select v-model="newProd.unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:border-emerald-600 focus:bg-white uppercase">
                     <option v-for="u in availableUnits" :key="u" :value="u">{{ u }}</option>
                   </select>
                 </div>
-              </div>
-
-              <!-- Inline Quick Add Satuan -->
-              <div v-if="showQuickAddUnit" class="flex gap-1.5 p-1.5 bg-blue-50 border border-blue-200 rounded-xl">
-                <input 
-                  type="text" 
-                  v-model="quickUnitInput" 
-                  placeholder="Nama satuan baru (mis: Pack, Strip)..." 
-                  class="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-bold focus:outline-none"
-                  @keydown.enter.prevent="quickAddUnit('base')"
-                />
-                <button type="button" @click="quickAddUnit('base')" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-3 py-1 rounded-lg font-bold shadow-xs cursor-pointer">OK</button>
-                <button type="button" @click="showQuickAddUnit = false" class="bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer">✕</button>
               </div>
 
               <!-- Baris 3: Harga Eceran (Numpad), Harga Modal/HPP, & Stok Fisik (Sejajar 1 Baris) -->
@@ -4989,6 +5004,57 @@ onUnmounted(() => {
         <div class="flex gap-2.5 pt-2 border-t border-slate-200">
           <button @click="showQuickAddCategoryModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
           <button @click="saveQuickCategory" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs">Simpan Kategori</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL QUICK ADD SATUAN BARU (SELARAS DENGAN KATEGORI) -->
+    <div v-if="showQuickAddUnitModal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-[70] flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col shadow-2xl p-5 gap-3.5 border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl p-1.5 bg-blue-50 rounded-xl border border-blue-200 shadow-2xs">📏</span>
+            <div>
+              <h3 class="font-bold text-xs text-slate-900 leading-tight">Tambah Satuan Baru</h3>
+              <p class="text-[10px] text-slate-500">Satuan langsung aktif di form produk</p>
+            </div>
+          </div>
+          <button type="button" @click="showQuickAddUnitModal = false" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer">✕</button>
+        </div>
+
+        <div class="flex flex-col gap-2.5">
+          <div>
+            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Nama Satuan:</label>
+            <input 
+              ref="quickUnitInputRef"
+              type="text" 
+              v-model="quickUnitInput" 
+              @keydown.enter.prevent="saveQuickUnit"
+              placeholder="Contoh: Pack, Strip, Box, Karung..." 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white transition"
+            />
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Saran Cepat:</label>
+            <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
+              <button 
+                v-for="u in unitPresetSuggestions" 
+                :key="u"
+                type="button"
+                @click="quickUnitInput = u"
+                :class="quickUnitInput.trim().toLowerCase() === u.toLowerCase() ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200 shadow-2xs'"
+                class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer"
+              >
+                {{ u }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2.5 pt-2 border-t border-slate-200">
+          <button type="button" @click="showQuickAddUnitModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2.5 rounded-xl font-bold border border-slate-200 transition cursor-pointer">Batal</button>
+          <button type="button" @click="saveQuickUnit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-xl font-bold border border-blue-600 transition cursor-pointer shadow-xs">Simpan Satuan</button>
         </div>
       </div>
     </div>
@@ -6464,7 +6530,7 @@ onUnmounted(() => {
 
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Versi Service Worker:</span>
-                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v79</span>
+                  <span class="text-xs font-mono font-bold text-slate-900">rozak-mart-pos-v80</span>
                 </div>
               </div>
 

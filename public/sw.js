@@ -1,5 +1,5 @@
 // Rozak Mart POS - Progressive Web App Service Worker
-const CACHE_NAME = 'rozak-mart-pos-v79';
+const CACHE_NAME = 'rozak-mart-pos-v80';
 const AUTH_PATHS = ['/login', '/register', '/logout', '/profile', '/forgot-password', '/reset-password'];
 const STATIC_ASSETS = [
   '/manifest.json',
